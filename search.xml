@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>给 Hexo 主题 Next 侧边栏加上网易音乐</title>
+    <url>//2023/11/15/%E7%BB%99-Hexo-%E4%B8%BB%E9%A2%98-Next-%E4%BE%A7%E8%BE%B9%E6%A0%8F%E5%8A%A0%E4%B8%8A%E7%BD%91%E6%98%93%E9%9F%B3%E4%B9%90/</url>
+    <content><![CDATA[<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h1><p>Next 官方提供的<a href="https://theme-next.js.org/docs/advanced-settings/custom-files#Custom-File-Support">文档</a>，据文档描述，可以直接添加 <code>source/_data/sidebar.njk</code> 文件并直接编写代码，并且取消配置文件中的相关注释, 或者使用 <a href="https://theme-next.js.org/docs/advanced-settings/injects">Inject</a> 风格.</p>
+<h1 id="编写"><a href="#编写" class="headerlink" title="编写"></a>编写</h1><h2 id="基础方式"><a href="#基础方式" class="headerlink" title="基础方式"></a>基础方式</h2><p>直接保存网易提供的外链代码为  <code>/source/_data/sidebar.njk</code> 文件, 并取消配置文件相关注释:</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&lt;iframe frameborder=<span class="string">&quot;no&quot;</span> border=<span class="string">&quot;0&quot;</span> marginwidth=<span class="string">&quot;0&quot;</span> marginheight=<span class="string">&quot;0&quot;</span> </span><br><span class="line">width=<span class="number">330</span> </span><br><span class="line">height=<span class="number">86</span> </span><br><span class="line">src=<span class="string">&quot;//music.163.com/outchain/player?type=2&amp;id=1407540299&amp;auto=1&amp;height=66&quot;</span>&gt;&lt;/iframe&gt;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p>效果<br><img data-src="https://img-gh.siweipancc.com/20231116/image.1jzkp2sfsb5s.z4sbsddp5jk.png" alt="image"></p>
+<h2 id="改进"><a href="#改进" class="headerlink" title="改进"></a>改进</h2><p>上边的代码有个问题是每次更换歌曲需要动源文件，对上边的代码进行 Inject 风格化 并重命名为 <code>music_netEase.njk</code>, 改动如下：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&lt;iframe frameborder=<span class="string">&quot;no&quot;</span> border=<span class="string">&quot;0&quot;</span> marginwidth=<span class="string">&quot;0&quot;</span> marginheight=<span class="string">&quot;0&quot;</span> </span><br><span class="line">width=&#123;&#123;_width+<span class="number">20</span>&#125;&#125; </span><br><span class="line">height=&#123;&#123;_height+<span class="number">20</span>&#125;&#125; </span><br><span class="line">src=<span class="string">&quot;//music.163.com/outchain/player?type=2&amp;id=&#123;&#123;_id&#125;&#125;&amp;auto=0&amp;height=&#123;&#123;_height&#125;&#125;&quot;</span>&gt;&lt;/iframe&gt;</span><br></pre></td></tr></table></figure>
+<p>以下划线开始的字符为动态渲染的变量，并增加以下 <code>/script/inject.js</code> <a href="https://hexo.io/docs/plugins.html#Script">script 脚本</a>:</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">hexo.<span class="property">extend</span>.<span class="property">filter</span>.<span class="title function_">register</span>(<span class="string">&#x27;theme_inject&#x27;</span>, <span class="keyword">function</span> (<span class="params">injects</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> config = hexo.<span class="property">config</span>.<span class="property">theme_config</span>[<span class="string">&#x27;net_eas&#x27;</span>] || &#123;<span class="attr">enable</span>: <span class="literal">false</span>&#125;;</span><br><span class="line">    <span class="keyword">if</span> (hexo.<span class="property">config</span>.<span class="property">theme</span> === <span class="string">&#x27;next&#x27;</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (config.<span class="property">enable</span>) &#123;</span><br><span class="line">            <span class="title function_">register_netEas</span>(injects, config);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">register_netEas</span>(<span class="params">injects, config</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> sidebar = hexo.<span class="property">config</span>.<span class="property">theme_config</span>.<span class="property">sidebar</span>;</span><br><span class="line">    <span class="keyword">let</span> id = config.<span class="property">id</span>;</span><br><span class="line">    <span class="keyword">let</span> width = config.<span class="property">width</span> ? config.<span class="property">width</span> : <span class="number">260</span>;</span><br><span class="line">    <span class="keyword">let</span> height;</span><br><span class="line">    <span class="keyword">let</span> style = config.<span class="property">style</span> ? config.<span class="property">style</span> : <span class="string">&#x27;compact&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (id === <span class="literal">undefined</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        id = <span class="title class_">Number</span>.<span class="built_in">parseInt</span>(id + <span class="string">&#x27;&#x27;</span>)</span><br><span class="line">        width = <span class="title class_">Number</span>.<span class="built_in">parseInt</span>(width + <span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">        hexo.<span class="property">log</span>.<span class="title function_">error</span>(e)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// adjust width</span></span><br><span class="line">    <span class="keyword">const</span> accept_iframe_width_max = sidebar.<span class="property">width</span> - <span class="number">2</span> * sidebar.<span class="property">padding</span> - <span class="number">2</span> * <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">if</span> (width &gt; accept_iframe_width_max) &#123;</span><br><span class="line">        width = accept_iframe_width_max;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// adjust height</span></span><br><span class="line">    <span class="keyword">if</span> (style === <span class="string">&#x27;compact&#x27;</span>) &#123;</span><br><span class="line">        height = <span class="number">66</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (style === <span class="string">&#x27;mini&#x27;</span>) &#123;</span><br><span class="line">        height = <span class="number">32</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    injects.<span class="property">sidebar</span>.<span class="title function_">file</span>(<span class="string">&#x27;music_netEase&#x27;</span>, <span class="string">&#x27;source/_data/music_netEase.njk&#x27;</span>, &#123;</span><br><span class="line">        <span class="attr">_id</span>: id,</span><br><span class="line">        <span class="attr">_width</span>: width,</span><br><span class="line">        <span class="attr">_height</span>: height,</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>并增加对应的配置项(_config.next.yml)</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 网易云音乐</span></span><br><span class="line"><span class="attr">net_eas:</span></span><br><span class="line">  <span class="attr">enable:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">id:</span> <span class="number">1925759962</span></span><br><span class="line">  <span class="comment"># compact | mini</span></span><br><span class="line">  <span class="attr">style:</span> <span class="string">compact</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>至此，我们增加了三个自适应动态选项：</p>
+<ul>
+<li>enable: 开启或者关闭该组件;</li>
+<li>id: 歌曲 ID;</li>
+<li>style: compact 显示大图标 | mini 不显示大图标;</li>
+</ul>
+<h1 id="注"><a href="#注" class="headerlink" title="注"></a>注</h1><p>网易提供的外链官方限制？最小宽度 260, 实际可以更小, 在 Next 主题的 <strong>Gemini</strong> Schemes 下 , 其内容宽度此时会变成 <code>300 - 2 * 18 - 2 * 10 = 244</code> ， iframe 宽度是 264, 均略小于网易提供的设置, 但实测不影响使用, 一种改进是修改主题配置的 sidebar 设置的 <strong>width</strong> 跟 <strong>padding</strong> .</p>
+<p>附，mini 效果图:</p>
+<p><img data-src="https://img-gh.siweipancc.com/20231116/image.2fz7k112nxa8.y5qeuy66amo.png" alt="image"></p>
+<p><a href="https://gist.github.com/siweipancc/a5354342e2b2758210ce14ad4eb44df8">music_netEase.njk</a></p>
+<p><a href="https://gist.github.com/siweipancc/82094c3b70c58fc9565f3e44bfbd4d48">inject.js</a></p>
+]]></content>
+      <categories>
+        <category>Hexo</category>
+        <category>插件</category>
+      </categories>
+      <tags>
+        <tag>Hexo</tag>
+        <tag>Hexo 插件</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hexo 自动化部署</title>
+    <url>//2023/11/16/Hexo-%E8%87%AA%E5%8A%A8%E5%8C%96%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<h1 id="GitHub-Action"><a href="#GitHub-Action" class="headerlink" title="GitHub Action"></a>GitHub Action</h1><p>首先是 Hexo 提供的官方 GitHub Pages <a href="https://hexo.io/docs/github-pages">配置</a> </p>
+<h2 id="pages-yml"><a href="#pages-yml" class="headerlink" title="pages.yml"></a>pages.yml</h2><p>该配置文件需做如下调整</p>
+<span id="more"></span>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">name:</span> <span class="string">Pages</span></span><br><span class="line"></span><br><span class="line"><span class="attr">on:</span></span><br><span class="line">  <span class="attr">push:</span></span><br><span class="line">    <span class="attr">branches:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">main</span>  <span class="comment"># default branch</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">build:</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">uses:</span> <span class="string">actions/checkout@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">token:</span> <span class="string">$&#123;&#123;</span> <span class="string">secrets.GITHUB_TOKEN</span> <span class="string">&#125;&#125;</span></span><br><span class="line">          <span class="comment"># If your repository depends on submodule, please see: https://github.com/actions/checkout</span></span><br><span class="line">          <span class="attr">submodules:</span> <span class="string">recursive</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Use</span> <span class="string">Node.js</span> <span class="number">16.</span><span class="string">x</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/setup-node@v2</span> <span class="comment"># 需要调整到 v3 版本</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">node-version:</span> <span class="string">&#x27;16&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Cache</span> <span class="string">NPM</span> <span class="string">dependencies</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/cache@v2</span>  <span class="comment"># 需要调整到 v3 版本</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">node_modules</span></span><br><span class="line">          <span class="attr">key:</span> <span class="string">$&#123;&#123;</span> <span class="string">runner.OS</span> <span class="string">&#125;&#125;-npm-cache</span></span><br><span class="line">          <span class="attr">restore-keys:</span> <span class="string">|</span></span><br><span class="line"><span class="string">            $&#123;&#123; runner.OS &#125;&#125;-npm-cache</span></span><br><span class="line"><span class="string"></span>      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Install</span> <span class="string">Dependencies</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">install</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Build</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">run</span> <span class="string">build</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Upload</span> <span class="string">Pages</span> <span class="string">artifact</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/upload-pages-artifact@v2</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">./public</span></span><br><span class="line">  <span class="attr">deploy:</span></span><br><span class="line">    <span class="attr">needs:</span> <span class="string">build</span></span><br><span class="line">    <span class="attr">permissions:</span></span><br><span class="line">      <span class="attr">pages:</span> <span class="string">write</span></span><br><span class="line">      <span class="attr">id-token:</span> <span class="string">write</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">github-pages</span></span><br><span class="line">      <span class="attr">url:</span> <span class="string">$&#123;&#123;</span> <span class="string">steps.deployment.outputs.page_url</span> <span class="string">&#125;&#125;</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Deploy</span> <span class="string">to</span> <span class="string">GitHub</span> <span class="string">Pages</span></span><br><span class="line">        <span class="attr">id:</span> <span class="string">deployment</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/deploy-pages@v2</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="限制"><a href="#限制" class="headerlink" title="限制"></a>限制</h2><p>以上把代码与发布 target 限定在同一个仓库, 即完全暴露了配置与代码.</p>
+<h1 id="分离源代码仓库与页面文件仓库"><a href="#分离源代码仓库与页面文件仓库" class="headerlink" title="分离源代码仓库与页面文件仓库"></a>分离源代码仓库与页面文件仓库</h1><h2 id="非官方插件"><a href="#非官方插件" class="headerlink" title="非官方插件"></a>非官方插件</h2><p>第一种方式是使用非官方插件 <a href="https://github.com/cpina/github-action-push-to-another-repository">github-action-push-to-another-repository</a>.</p>
+<h3 id="pages-yml-1"><a href="#pages-yml-1" class="headerlink" title="pages.yml"></a>pages.yml</h3><p>做如下调整:</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">name:</span> <span class="string">Pages</span></span><br><span class="line"></span><br><span class="line"><span class="attr">on:</span></span><br><span class="line">  <span class="attr">push:</span></span><br><span class="line">    <span class="attr">branches:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">master</span>  <span class="comment"># default branch</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">build:</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">uses:</span> <span class="string">actions/checkout@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">token:</span> <span class="string">$&#123;&#123;</span> <span class="string">secrets.GITHUB_TOKEN</span> <span class="string">&#125;&#125;</span></span><br><span class="line">          <span class="comment"># If your repository depends on submodule, please see: https://github.com/actions/checkout</span></span><br><span class="line">          <span class="attr">submodules:</span> <span class="string">recursive</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Use</span> <span class="string">Node.js</span> <span class="number">16.</span><span class="string">x</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/setup-node@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">node-version:</span> <span class="string">&#x27;16&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Cache</span> <span class="string">NPM</span> <span class="string">dependencies</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/cache@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">node_modules</span></span><br><span class="line">          <span class="attr">key:</span> <span class="string">$&#123;&#123;</span> <span class="string">runner.OS</span> <span class="string">&#125;&#125;-npm-cache</span></span><br><span class="line">          <span class="attr">restore-keys:</span> <span class="string">|</span></span><br><span class="line"><span class="string">            $&#123;&#123; runner.OS &#125;&#125;-npm-cache</span></span><br><span class="line"><span class="string"></span>      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Install</span> <span class="string">Dependencies</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">install</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Build</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">run</span> <span class="string">build</span></span><br><span class="line"><span class="comment">#      - name: Upload Pages artifact</span></span><br><span class="line"><span class="comment">#        uses: actions/upload-pages-artifact@v2</span></span><br><span class="line"><span class="comment">#        with:</span></span><br><span class="line"><span class="comment">#          path: ./public</span></span><br><span class="line"><span class="comment">#  deploy:</span></span><br><span class="line"><span class="comment">#    needs: build</span></span><br><span class="line"><span class="comment">#    permissions:</span></span><br><span class="line"><span class="comment">#      pages: write</span></span><br><span class="line"><span class="comment">#      id-token: write</span></span><br><span class="line"><span class="comment">#    environment:</span></span><br><span class="line"><span class="comment">#      name: github-pages</span></span><br><span class="line"><span class="comment">#      url: $&#123;&#123; steps.deployment.outputs.page_url &#125;&#125;</span></span><br><span class="line"><span class="comment">#    runs-on: ubuntu-latest</span></span><br><span class="line"><span class="comment">#    steps:</span></span><br><span class="line"><span class="comment">#      - name: Deploy to GitHub Pages</span></span><br><span class="line"><span class="comment">#        id: deployment</span></span><br><span class="line"><span class="comment">#        uses: actions/deploy-pages@v2</span></span><br><span class="line"></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Pushes</span> <span class="string">to</span> <span class="string">public</span> <span class="string">repository</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">cpina/github-action-push-to-another-repository@main</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">          <span class="attr">API_TOKEN_GITHUB:</span> &lt;%<span class="language-ruby"> 能访问目标仓库授权 token </span>%&gt;</span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">source-directory:</span> <span class="string">&#x27;public&#x27;</span></span><br><span class="line">          <span class="attr">destination-github-username:</span> &lt;%<span class="language-ruby"> 目标仓库用户 </span>%&gt;</span><br><span class="line">          <span class="attr">destination-repository-name:</span> &lt;%<span class="language-ruby"> 目标仓库 </span>%&gt;</span><br><span class="line">          <span class="attr">user-email:</span> &lt;%<span class="language-ruby"> 提交的用户邮件 </span>%&gt;</span><br><span class="line">          <span class="attr">target-branch:</span> <span class="string">master</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>别忘了手动设置 GitHub Pages 到源代码模式:<br><img data-src="https://img-gh.siweipancc.com//20231116/image.7gimdytyghs0.png" alt="image"></p>
+<h2 id="官方插件"><a href="#官方插件" class="headerlink" title="官方插件"></a>官方插件</h2><p>第二种方式是使用官方插件 <a href="https://hexo.io/docs/one-command-deployment">one-command-deployment</a>.</p>
+<h3 id="pages-yml-2"><a href="#pages-yml-2" class="headerlink" title="pages.yml"></a>pages.yml</h3><p>做如下调整:</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="attr">name:</span> <span class="string">Pages</span></span><br><span class="line"></span><br><span class="line"><span class="attr">on:</span></span><br><span class="line">  <span class="attr">push:</span></span><br><span class="line">    <span class="attr">branches:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">master</span>  <span class="comment"># default branch</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">build:</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">uses:</span> <span class="string">actions/checkout@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">token:</span> <span class="string">$&#123;&#123;</span> <span class="string">secrets.GITHUB_TOKEN</span> <span class="string">&#125;&#125;</span></span><br><span class="line">          <span class="comment"># If your repository depends on submodule, please see: https://github.com/actions/checkout</span></span><br><span class="line">          <span class="attr">submodules:</span> <span class="string">recursive</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Use</span> <span class="string">Node.js</span> <span class="number">16.</span><span class="string">x</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/setup-node@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">node-version:</span> <span class="string">&#x27;16&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Cache</span> <span class="string">NPM</span> <span class="string">dependencies</span></span><br><span class="line">        <span class="attr">uses:</span> <span class="string">actions/cache@v3</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">node_modules</span></span><br><span class="line">          <span class="attr">key:</span> <span class="string">$&#123;&#123;</span> <span class="string">runner.OS</span> <span class="string">&#125;&#125;-npm-cache</span></span><br><span class="line">          <span class="attr">restore-keys:</span> <span class="string">|</span></span><br><span class="line"><span class="string">            $&#123;&#123; runner.OS &#125;&#125;-npm-cache</span></span><br><span class="line"><span class="string"></span>      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Install</span> <span class="string">Dependencies</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">install</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Build</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">run</span> <span class="string">build</span></span><br><span class="line"><span class="comment">#      - name: Upload Pages artifact</span></span><br><span class="line"><span class="comment">#        uses: actions/upload-pages-artifact@v2</span></span><br><span class="line"><span class="comment">#        with:</span></span><br><span class="line"><span class="comment">#          path: ./public</span></span><br><span class="line"><span class="comment">#  deploy:</span></span><br><span class="line"><span class="comment">#    needs: build</span></span><br><span class="line"><span class="comment">#    permissions:</span></span><br><span class="line"><span class="comment">#      pages: write</span></span><br><span class="line"><span class="comment">#      id-token: write</span></span><br><span class="line"><span class="comment">#    environment:</span></span><br><span class="line"><span class="comment">#      name: github-pages</span></span><br><span class="line"><span class="comment">#      url: $&#123;&#123; steps.deployment.outputs.page_url &#125;&#125;</span></span><br><span class="line"><span class="comment">#    runs-on: ubuntu-latest</span></span><br><span class="line"><span class="comment">#    steps:</span></span><br><span class="line"><span class="comment">#      - name: Deploy to GitHub Pages</span></span><br><span class="line"><span class="comment">#        id: deployment</span></span><br><span class="line"><span class="comment">#        uses: actions/deploy-pages@v2</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#      - name: Pushes to public repository</span></span><br><span class="line"><span class="comment">#        uses: cpina/github-action-push-to-another-repository@main</span></span><br><span class="line"><span class="comment">#        env:</span></span><br><span class="line"><span class="comment">#          API_TOKEN_GITHUB: &#x27;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&#x27;</span></span><br><span class="line"><span class="comment">#        with:</span></span><br><span class="line"><span class="comment">#          source-directory: &#x27;public&#x27;</span></span><br><span class="line"><span class="comment">#          destination-github-username: &#x27;siweipancc&#x27;</span></span><br><span class="line"><span class="comment">#          destination-repository-name: &#x27;blog-hexo-public&#x27;</span></span><br><span class="line"><span class="comment">#          user-email: siweipancc@hotmail.com</span></span><br><span class="line"><span class="comment">#          target-branch: master</span></span><br><span class="line"></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Pushes</span> <span class="string">to</span> <span class="string">public</span> <span class="string">repository</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">npm</span> <span class="string">exec</span> <span class="string">hexo</span> <span class="string">deploy</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="config-yml"><a href="#config-yml" class="headerlink" title="_config.yml"></a>_config.yml</h3><p>补充如下信息:</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment"># Deployment</span></span><br><span class="line"><span class="comment">## Docs: https://hexo.io/docs/one-command-deployment</span></span><br><span class="line"><span class="attr">deploy:</span></span><br><span class="line"> <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line"> <span class="attr">repo:</span> <span class="string">https://oauth2:&lt;%</span> <span class="string">能访问目标仓库授权</span> <span class="string">token</span> <span class="string">%&gt;@github.com/&lt;%</span> <span class="string">目标仓库用户</span> <span class="string">%&gt;/&lt;%</span> <span class="string">目标仓库</span> <span class="string">%&gt;.git</span></span><br><span class="line"> <span class="attr">message:</span> <span class="string">&#x27;auto update&#x27;</span></span><br><span class="line"> <span class="attr">name:</span> <span class="string">&#x27;&lt;% 提交的用户 %&gt;&#x27;</span></span><br><span class="line"> <span class="attr">email:</span> <span class="string">&#x27;&lt;% 提交的用户邮件 %&gt;&#x27;</span></span><br><span class="line"> <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注</strong>: </p>
+<ul>
+<li>repo 使用 oauth2 协议, <a href="https://github.com/hexojs/hexo/issues/4757#issuecomment-901613964">相关讨论</a>;</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Hexo</category>
+        <category>自动化部署</category>
+      </categories>
+      <tags>
+        <tag>Hexo</tag>
+        <tag>GitHub Action</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Windows 文件链接</title>
+    <url>//2023/11/16/Windows-%E6%96%87%E4%BB%B6%E9%93%BE%E6%8E%A5/</url>
+    <content><![CDATA[<h1 id="前叙"><a href="#前叙" class="headerlink" title="前叙"></a>前叙</h1><p>本文也可作为在 Unix 系统下软硬链接的一部分指导资料. </p>
+<p>Windows Vista 以上, NTFS 文件系统支持三种类型的文件链接: 硬链接、交汇点(目录链接) 和 符号链接. </p>
+<ol>
+<li>符号链接<ol>
+<li>符号链接是指向<strong>另一个</strong>文件系统对象的文件系统对象</li>
+<li>链接目标为普通文件或目录</li>
+<li>可以跨卷</li>
+<li>与 <strong>UNIX</strong> 操作系统兼容</li>
+</ol>
+</li>
+<li>硬链接<ol>
+<li>多个路径引用<strong>同一卷</strong>中的单个<strong>文件</strong></li>
+<li>对硬链接文件所做的任何更改具有立即的传播性</li>
+</ol>
+</li>
+<li>交汇点<ol>
+<li>与硬链接相同, 引用的存储对象是单独的<strong>目录</strong></li>
+<li>可以跨卷</li>
+</ol>
+</li>
+</ol>
+<span id="more"></span>
+
+<hr>
+<h1 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h1><p>这里主要关注 CMD 文档  与 fileIo 文档. </p>
+<h2 id="链接窗口"><a href="#链接窗口" class="headerlink" title="链接窗口"></a>链接窗口</h2><p>以下是 Windows 下一个经典的 <strong>mklink</strong> 提示:</p>
+<p><img data-src="https://img-gh.siweipancc.com/20231116/image.25zbnuv7jy00.png" alt="image"></p>
+<h2 id="文档与工具"><a href="#文档与工具" class="headerlink" title="文档与工具"></a>文档与工具</h2><p>与之对应的的 API 文档列表:</p>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/mklink#related-links">mklink</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/fileio/symbolic-links">symbolic-links</a></li>
+<li><a href="https://learn.microsoft.com/en-us//windows/win32/fileio/reparse-points">Reparse Points</a><ul>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-point-tags">Reparse Point Tags</a></li>
+<li><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/e57148b1-300b-4d1e-8f67-091de2de815e">Reparse Point Data Structures</a><ul>
+<li><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/c8e77b37-3909-4fe6-a4ea-2b9d423b1ee4">Reparse Tags</a></li>
+</ul>
+</li>
+<li><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ca069dad-ed16-42aa-b057-b6b207f447cc">Mount Point Reparse Data Buffer</a></li>
+</ul>
+</li>
+<li><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil">fsutil</a><ul>
+<li><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-reparsepoint">fsutil-reparsepoint</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-hardlink">fsutil-hardlink</a></li>
+</ul>
+</li>
+<li><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/46021e52-29b1-475c-b6d3-fe5497d23277">FileHardLinkInformation</a></li>
+</ul>
+<p>安装相应的辅助工具:</p>
+<ul>
+<li><a href="https://www.voidtools.com/forum/viewtopic.php?f=12&t=9787">Everything 1.5 Alpha</a></li>
+<li><a href="https://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html">link-shell-extension</a></li>
+</ul>
+<p>link-shell-extension 需要开启默认图标;<br>Everything 需要在 工具-选项-索引-属性 添加 <code>Reparse Tag</code> 与 <code>Reparse Target</code> 并添加到显示列中(右键表头勾选).<br>软链接 与 fsutil 需要权限提升</p>
+<hr>
+<h1 id="符号链接"><a href="#符号链接" class="headerlink" title="符号链接"></a>符号链接</h1><p>首先我们准备最大深度为 4 的文件树(各 txt 内容为文件名)</p>
+<p><img data-src="https://img-gh.siweipancc.com/20231117/image.19dtvmqib8f4.png" alt="image"></p>
+<hr>
+<h2 id="文件"><a href="#文件" class="headerlink" title="文件"></a>文件</h2><h3 id="创建链接"><a href="#创建链接" class="headerlink" title="创建链接"></a>创建链接</h3><p>在深度 0 的 wip 文件夹中</p>
+<ul>
+<li>以<strong>相对路径</strong>创建一个符号链接 LF10.txt, 链接文件夹 DL00 中的文件 F10.txt (深度1): <code>mklink LF10.txt DL00\FL10.txt</code></li>
+<li>以<strong>绝对路径</strong>创建一个符号链接 ALF10.txt, 链接文件夹 DL00 中的文件 F10.txt (深度1): <code>mklink ALF10.txt D:\wip\DL00\FL10.txt</code></li>
+</ul>
+<p><img data-src="https://img-gh.siweipancc.com/20231117/Windows-%E6%96%87%E4%BB%B6%E9%93%BE%E6%8E%A5-%E8%BD%AF0.1wy71sb8j41s.png" alt="Windows-文件链接-软0"></p>
+<h4 id="规则"><a href="#规则" class="headerlink" title="规则"></a>规则</h4><p>将链接 LF10.txt 称为 <b class="r1">A</b>,链接 ALF10.txt 称为 <b class="r2">B</b>, 目标 F10.txt 称为 <b class="r0">T</b></p>
+<p>存在以下规则:</p>
+<ol>
+<li><b class="r1">A</b> 与 <b class="r0">T</b> 的内容是一致的 </li>
+<li><b class="r2">B</b> 与 <b class="r0">T</b> 的内容是一致的</li>
+<li>修改其中一个内容, 它们之间的内容也会同步</li>
+<li>重命名 <b class="r1">A</b>, 规则 1,3 仍然成立</li>
+<li>重命名 <b class="r2">B</b>, 规则 2,3 仍然成立</li>
+<li>规则 1|3|4 的表现类似为 <b class="r1">A</b> 是对 <b class="r0">T</b> 的快捷方式</li>
+<li>规则 2|3|5 的表现类似为 <b class="r2">B</b> 是对 <b class="r0">T</b> 的快捷方式</li>
+<li>当 <b class="r0">T</b> 为可读写, 对 <b class="r1">A</b> 设置只读模式并不生效, 且该属性不同步到 <b class="r2">B</b> 或者 <b class="r0">T</b>, 对 <b class="r0">T</b> 的修改遵循规则 3 </li>
+<li>当 <b class="r0">T</b> 为可读写, 对 <b class="r2">B</b> 设置只读模式并不生效, 且该属性不同步到 <b class="r1">A</b> 或者 <b class="r0">T</b>, 对 <b class="r0">T</b> 的修改遵循规则 3</li>
+</ol>
+<p>同时存在以下规则:</p>
+<ol>
+<li>重命名 <b class="r0">T</b>, <b class="r1">A</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开快捷属性, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>重命名 <b class="r0">T</b>, <b class="r2">B</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开快捷属性, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>移动了 <b class="r0">T</b>, <b class="r1">A</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开快捷属性, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>移动了 <b class="r0">T</b>, <b class="r2">B</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开快捷属性, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>规则 1|2|3|4 中在程序开发中都称为对 T 的 <strong>移动</strong> 操作</li>
+<li>在快捷方式创建之后, 当我们移动目标之后时, 快捷方式的文件目标属性会<strong>同步</strong>修改. 这与规则 1|2|3|4 的表现不同</li>
+<li>移动了 <b class="r1">A</b>, <b class="r1">A</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开快捷属性, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>移动了 <b class="r2">B</b>, <b class="r2">B</b> 仍<b class="pass">可以</b>定位到 <b class="r0">T</b> 的内容</li>
+<li>当 <b class="r0">T</b> 为只读,  对 <b class="r1">A</b> 设置可写模式并不生效, 且该属性不同步到 <b class="r2">B</b> 或者 <b class="r0">T</b></li>
+<li>当 <b class="r0">T</b> 为只读,  对 <b class="r2">B</b> 设置可写模式并不生效, 且该属性不同步到 <b class="r1">A</b> 或者 <b class="r0">T</b></li>
+</ol>
+<h4 id="元数据"><a href="#元数据" class="headerlink" title="元数据"></a>元数据</h4><p>在 <strong>Everything</strong> 中 搜索 <code>parent:D:\wip regex:^(A)&#123;0,1&#125;LF10.txt$</code>, 可以较明显的看到元素据 Reparse Tag 与 Reparse Target.</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>路径</th>
+<th>大小</th>
+<th>Reparse Tag</th>
+<th>Reparse Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LF10.txt</td>
+<td>D:\wip\</td>
+<td>0</td>
+<td><span class="warn">0xA000000C</span></td>
+<td>DL00\FL10.txt</td>
+</tr>
+<tr>
+<td>ALF10.txt</td>
+<td>D:\wip\</td>
+<td>0</td>
+<td><span class="warn">0xA000000C</span></td>
+<td>D:\wip\DL00\FL10.txt</td>
+</tr>
+</tbody></table>
+<p>或者使用 <strong>fsutil</strong> <code>fsutil reparsePoint query .\LF10.txt</code> 与 <code> fsutil reparsePoint query .\ALF10.txt</code><br><img data-src="https://img-gh.siweipancc.com/20231117/image.35mepah9dz20.png" alt="image"></p>
+<p>根据 MSN 文档的结构定义(<a href="https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-point-tags">Reparse Point Tags</a>,<br><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/e57148b1-300b-4d1e-8f67-091de2de815e">Reparse Point Data Structures</a>), 可以分解出下边的结构示意图:</p>
+<p><img data-src="https://img-gh.siweipancc.com/20231117/image.3g4lwsvvbmg0.png" alt="image"></p>
+<p><img data-src="https://img-gh.siweipancc.com/20231117/image.4rlcpgamewm0.png" alt="image"></p>
+<hr>
+<h2 id="文件夹"><a href="#文件夹" class="headerlink" title="文件夹"></a>文件夹</h2><p>该节与上一节内容一致, 因此只记录实操命令.</p>
+<h3 id="创建链接-1"><a href="#创建链接-1" class="headerlink" title="创建链接"></a>创建链接</h3><p>以<strong>相对路径</strong>创建一个符号链接 LDL10, 链接文件夹 DL00 中的文件夹 DL10 (深度1): <code>mklink /d LDL10 DL00\DL10</code>.</p>
+<p>以<strong>绝对路径</strong>创建一个符号链接 ALDL10, 链接文件夹 DL00 中的文件夹 DL10 (深度1): <code>mklink /d ALDL10 D:\wip\DL00\DL10</code>.</p>
+<h4 id="规则-1"><a href="#规则-1" class="headerlink" title="规则"></a>规则</h4><p>略</p>
+<h4 id="元数据-1"><a href="#元数据-1" class="headerlink" title="元数据"></a>元数据</h4><p>在 <strong>Everything</strong> 中 搜索 <code>parent:D:\wip dir: regex:^(A)&#123;0,1&#125;LDL10$ </code>, 可以较明显的看到元素据 Reparse Tag 与 Reparse Target.</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>路径</th>
+<th>大小</th>
+<th>Reparse Tag</th>
+<th>Reparse Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LDL10</td>
+<td>D:\wip\</td>
+<td>0</td>
+<td><span class="warn">0xA000000C</span></td>
+<td>DL00\DL10</td>
+</tr>
+<tr>
+<td>ALDL10</td>
+<td>D:\wip\</td>
+<td>0</td>
+<td><span class="warn">0xA000000C</span></td>
+<td>D:\wip\DL00\DL10</td>
+</tr>
+</tbody></table>
+<p>或者使用 <strong>fsutil</strong> <code>fsutil reparsePoint query LDL10</code> 与 <code> fsutil reparsePoint query ALDL10</code><br><img data-src="https://img-gh.siweipancc.com/20231118/image.51n7ht88bxk0.png" alt="image"></p>
+<hr>
+<h1 id="目录链接"><a href="#目录链接" class="headerlink" title="目录链接"></a>目录链接</h1><ol>
+<li>目录链接<strong>仅能</strong>在<b class="warn">目录</b>上创建</li>
+<li>可以使用相对路径创建, 但创建成功之后表示为<strong>绝对</strong>路径</li>
+<li><b class="pass">可以</b>跨分区创建</li>
+</ol>
+<h2 id="创建链接-2"><a href="#创建链接-2" class="headerlink" title="创建链接"></a>创建链接</h2><p>键入 <code>cd /d D:\wip\DL00</code> 切换工作目录</p>
+<ul>
+<li>以<strong>相对路径</strong>创建一个目录链接 MDL20,  链接文件夹 DL00 中的目录 DL20 (深度2): <code>mklink /j MDL20 DL10\DL20</code></li>
+<li>以<strong>绝对路径</strong>创建一个目录链接 AMDL20, 链接文件夹 DL00 中的目录 DL20 (深度2): <code>mklink /j AMDL20 D:\wip\DL00\DL10\DL20</code></li>
+</ul>
+<p><img data-src="https://img-gh.siweipancc.com/20231118/image.24n2r9zlf03k.png" alt="image"></p>
+<h2 id="规则-2"><a href="#规则-2" class="headerlink" title="规则"></a>规则</h2><p>将链接 MDL20 称为 <b class="r1">A</b>,链接 AMDL20 称为 <b class="r2">B</b>, 目标 DL20 称为 <b class="r0">T</b></p>
+<p>存在以下规则:</p>
+<ol>
+<li><b class="r1">A</b> 与 <b class="r0">T</b> 的内容是一致的</li>
+<li><b class="r2">B</b> 与 <b class="r0">T</b> 的内容是一致的</li>
+<li>修改其中一个内容, 它们之间的内容也会同步</li>
+<li>移动了 <b class="r1">A</b>, <b class="r1">A</b> 将<b class="pass">可以</b>定位到 <b class="r0">T</b> 的内容</li>
+<li>移动了 <b class="r2">B</b>, <b class="r2">B</b> 仍<b class="pass">可以</b>定位到 <b class="r0">T</b> 的内容</li>
+</ol>
+<p>同时存在以下规则:</p>
+<ol>
+<li>重命名 <b class="r0">T</b>, <b class="r1">A</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开目录, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>重命名 <b class="r0">T</b>, <b class="r2">B</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开目录, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>移动了 <b class="r0">T</b>, <b class="r1">A</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开目录, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>移动了 <b class="r0">T</b>, <b class="r2">B</b> 将<b class="warn">无法</b>定位到 <b class="r0">T</b> 的内容, 尝试打开目录, 资源管理器将抛出一个<span class="warn">错误</span></li>
+<li>规则 1|2|3|4 中在程序开发中都称为对 T 的 <strong>移动</strong> 操作</li>
+</ol>
+<h2 id="元数据-2"><a href="#元数据-2" class="headerlink" title="元数据"></a>元数据</h2><p>在 <strong>Everything</strong> 中 搜索 <code>parent:D:\wip\DL00 regex:^(A)&#123;0,1&#125;MDL20$</code>, 可以较明显的看到元素据 Reparse Tag 与 Reparse Target.</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>路径</th>
+<th>大小</th>
+<th>Reparse Tag</th>
+<th>Reparse Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MDL20</td>
+<td>D:\wip\DL00\</td>
+<td>0</td>
+<td><span class="warn">0xA0000003</span></td>
+<td>D:\wip\DL00\DL10\DL20</td>
+</tr>
+<tr>
+<td>AMDL20</td>
+<td>D:\wip\DL00\</td>
+<td>0</td>
+<td><span class="warn">0xA0000003</span></td>
+<td>D:\wip\DL00\DL10\DL20</td>
+</tr>
+</tbody></table>
+<p>或者使用 <strong>fsutil</strong> <code>fsutil reparsePoint query MDL20</code> 与 <code>fsutil reparsePoint query AMDL20</code></p>
+<p><img data-src="https://img-gh.siweipancc.com/20231118/image.4z3caaegvyk0.png" alt="image"></p>
+<hr>
+<h1 id="硬链接"><a href="#硬链接" class="headerlink" title="硬链接"></a>硬链接</h1><ol>
+<li>硬链接<strong>仅能</strong>在<b class="warn">文件</b>上创建</li>
+<li>可以使用相对路径创建, 但创建成功之后表示为(相当于当前存储分区的根)<strong>绝对</strong>路径</li>
+<li><b class="warn">不能</b>跨分区创建</li>
+</ol>
+<h2 id="创建链接-3"><a href="#创建链接-3" class="headerlink" title="创建链接"></a>创建链接</h2><p>键入 <code>cd /d D:\wip\DL00</code> 切换工作目录</p>
+<ul>
+<li>以<strong>相对路径</strong>创建一个硬链接 HDL20.txt, 链接文件夹 DL00 中的文件 DL20.txt (深度2): <code>mklink /h HDL20.txt DL10\DL20.txt</code></li>
+<li>以<strong>绝对路径</strong>创建一个硬链接 AHDL20.txt, 链接文件夹 DL00 中的文件 DL20.txt (深度2): <code>mklink /h AHDL20.txt D:\wip\DL00\DL10\DL20.txt</code></li>
+</ul>
+<p>注: </p>
+<ul>
+<li>硬链接<b class="warn">没有</b>快捷属性页</li>
+<li>硬链接的所每个连接属性页的 <strong>引用基数</strong> 跟 <strong>引用位置列表</strong> 都是<b class="pass">一致</b>的</li>
+</ul>
+<h2 id="规则-3"><a href="#规则-3" class="headerlink" title="规则"></a>规则</h2><p>将链接 HDL20.txt 称为 <b class="r1">A</b>,链接 AHDL20.txt 称为 <b class="r2">B</b>, 目标 DL20.txt 称为 <b class="r3">C</b></p>
+<p>存在以下规则:</p>
+<ol>
+<li><b class="r1">A</b>, <b class="r2">B</b>, <b class="r3">C</b> 指向文件系统中的同一个文件对象, 表现为<strong>指针</strong></li>
+<li><b class="r1">A</b>, <b class="r2">B</b>, <b class="r3">C</b> 的值修改都会立即同步(到引用位置列表的每一目标)</li>
+<li><b class="r1">A</b>, <b class="r2">B</b>, <b class="r3">C</b> 的属性修改都会立即同步(到引用位置列表的每一目标)</li>
+<li><b class="r1">A</b>, <b class="r2">B</b>, <b class="r3">C</b> 仅占用一份存储空间, 当所有链接被删除(引用为0)时, 存储才真正释放</li>
+<li><b class="r1">A</b>, <b class="r2">B</b>, <b class="r3">C</b> 移动后仍然能正常工作</li>
+</ol>
+<h2 id="元数据-3"><a href="#元数据-3" class="headerlink" title="元数据"></a>元数据</h2><p>在 <strong>Everything</strong> 中 搜索 <code>D:\wip\DL00 DL20.txt file: </code>, 可以较明显的看到元素据 Reparse Tag 与 Reparse Target.</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>路径</th>
+<th>大小</th>
+<th>Hard Link Count</th>
+<th>Hard Link Filenames</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DL20.txt</td>
+<td>D:\wip\DL00\DL10\</td>
+<td>1 KB</td>
+<td>3</td>
+<td>\wip\DL00\AHDL20.txt;\wip\DL00\HDL20.txt;\wip\DL00\DL10\DL20.txt</td>
+</tr>
+<tr>
+<td>HDL20.txt</td>
+<td>D:\wip\DL00</td>
+<td>1 KB</td>
+<td>3</td>
+<td>\wip\DL00\AHDL20.txt;\wip\DL00\HDL20.txt;\wip\DL00\DL10\DL20.txt</td>
+</tr>
+<tr>
+<td>AHDL20.txt</td>
+<td>D:\wip\DL00</td>
+<td>1 KB</td>
+<td>3</td>
+<td>\wip\DL00\AHDL20.txt;\wip\DL00\HDL20.txt;\wip\DL00\DL10\DL20.txt</td>
+</tr>
+</tbody></table>
+<p>或者使用 <strong>fsutil</strong> <code>fsutil.exe  hardlink list .\HDL20.txt</code><br><img data-src="https://img-gh.siweipancc.com/20231118/image.6f66zwtj4qw0.png" alt="image"></p>
+<hr>
+<h1 id="附"><a href="#附" class="headerlink" title="附"></a>附</h1><p>Reparse Tag:</p>
+<ol>
+<li>IO_REPARSE_TAG_MOUNT_POINT: 0xA0000003</li>
+<li>IO_REPARSE_TAG_SYMLINK: 0xA000000C</li>
+</ol>
+<p>注:</p>
+<ol>
+<li>在遵循创建规则的情况下, 各种链接可嵌套</li>
+<li>尽量使用绝对路径创建目录(符号)链接</li>
+<li>遵循不移动符号链接目标的原则</li>
+<li>符号链接在 SMB 共享时不生效(文件对象路径由客服端计算)</li>
+</ol>
+<p>提问:</p>
+<ol>
+<li>在一个符号链接上创建符号链接的结果</li>
+<li>目录链接产生循环节点的后果</li>
+</ol>
+<style type="text/css" >
+.warn{
+color:#e74c3c
+}
+.pass{
+color:#3498db
+}
+.r0{
+color:#f39c12
+}
+.r1{
+color:#34495e
+}
+.r2{
+color:#95a5a6
+}
+.r3{
+color:#008272
+}
+</style>
+]]></content>
+      <categories>
+        <category>Windows</category>
+        <category>路径</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Windows 文件链接</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Windows 系统中的文件路径格式</title>
+    <url>//2023/11/15/Windows-%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84%E6%A0%BC%E5%BC%8F/</url>
+    <content><![CDATA[<h1 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h1><p><a href="https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats">官方链接</a></p>
+<p>标准的 DOS 路径可由以下三部分组成：</p>
+<ul>
+<li>卷号或驱动器号，后跟卷分隔符 (:)。</li>
+<li>目录名称。 目录分隔符用来分隔嵌套目录层次结构中的子目录。</li>
+<li>可选的文件名。 目录分隔符用来分隔文件路径和文件名。</li>
+</ul>
+<p>如果以上三项都存在，则为<strong>绝对路径</strong>。 如未指定卷号或驱动器号，且目录名称的开头是目录分隔符，则路径属于当前驱动器根路径上的相对路径。 否则路径相对于当前目录。</p>
+<span id="more"></span>
+
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C:\Projects\apilibrary\apilibrary.sln</td>
+<td>C: 驱动器的根目录中的<strong>绝对</strong>文件路径。</td>
+</tr>
+<tr>
+<td>\Program Files\Custom Utilities\StringFinder.exe</td>
+<td>当前驱动器根路径上的<strong>相对</strong>路径。</td>
+</tr>
+<tr>
+<td>2018\January.xlsx</td>
+<td>指向当前目录的子目录中的文件的<strong>相对</strong>路径。</td>
+</tr>
+<tr>
+<td>..\Publications\TravelBrochure.pdf</td>
+<td>指向从当前目录开始的目录中的文件的<strong>相对</strong>路径。</td>
+</tr>
+<tr>
+<td>C:\Projects\apilibrary\apilibrary.sln</td>
+<td>C: 驱动器的根目录中的文件的<strong>绝对</strong>路径。</td>
+</tr>
+<tr>
+<td>C:Projects\apilibrary\apilibrary.sln</td>
+<td>C: 驱动器的当前目录中的<strong>相对</strong>路径。</td>
+</tr>
+</tbody></table>
+<h1 id="解析"><a href="#解析" class="headerlink" title="解析"></a>解析</h1><p>对于以下目录:<br><img data-src="https://img-gh.siweipancc.com/20231116/image.1sexxhe81xpc.png" alt="image"></p>
+<p>如果我们想导航到上级目录, 可以键入 <code>cd ..\</code>|<code>cd /d ..\</code><br><img data-src="https://img-gh.siweipancc.com/20231116/image.muhil93clm8.png" alt="image"></p>
+<p>如果我们想导航到 Space 目录, 可以键入</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> Space</span><br><span class="line"><span class="built_in">cd</span> /d Space</span><br><span class="line"><span class="built_in">cd</span> .\Space</span><br><span class="line"><span class="built_in">cd</span> /d .\Space</span><br><span class="line"><span class="built_in">cd</span> D:Space</span><br><span class="line"><span class="built_in">cd</span> /d D:Space</span><br><span class="line"><span class="built_in">cd</span> D:\JetBrains\Toolbox\apps\Toolbox</span><br><span class="line"><span class="built_in">cd</span> /d D:\JetBrains\Toolbox\apps\Toolbox</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="https://img-gh.siweipancc.com/20231116/image.4jxumho143o0.png" alt="image"></p>
+<p>在资源管理器中, 则可以省略 <strong>cd &#x2F;d</strong></p>
+]]></content>
+      <categories>
+        <category>Windows</category>
+        <category>路径</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Windows 路径</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用 LinkShellExtension 简化 Windows 文件链接</title>
+    <url>//2023/11/18/%E4%BD%BF%E7%94%A8-LinkShellExtension-%E7%AE%80%E5%8C%96-Windows-%E6%96%87%E4%BB%B6%E9%93%BE%E6%8E%A5/</url>
+    <content><![CDATA[<h1 id="简化-Windows-文件链接"><a href="#简化-Windows-文件链接" class="headerlink" title="简化 Windows 文件链接"></a>简化 Windows 文件链接</h1><p>使用命令行方式对文件链接进行操作繁琐又危险, 且极难进行大量的文件对象操作, 当涉及<strong>复制</strong>与<strong>移动</strong>时候更为地狱.</p>
+<h1 id="ln-可选"><a href="#ln-可选" class="headerlink" title="ln(可选)"></a>ln(可选)</h1><p>ln 作为 LinkShellExtension 的命令行扩展, 提供额外的数据分析.<br><a href="https://schinagl.priv.at/nt/ln/ln.html">官方网站</a>.<br>下边提供 ln 的 ui 操作替代代码</p>
+<h1 id="LinkShellExtension"><a href="#LinkShellExtension" class="headerlink" title="LinkShellExtension"></a>LinkShellExtension</h1><p>在 <strong>Windows-文件链接</strong> 中仅使用到了该工具的标记功能, 在此对这个工具的基本功能做简要记述以及对官方一些蛋疼的描述做优化并记录.<br><a href="https://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html">官方网站</a>.<br>为美观下文将工作称为 LSE.</p>
+<h2 id="语义对照表"><a href="#语义对照表" class="headerlink" title="语义对照表"></a>语义对照表</h2><span id="more"></span>
+
+<p>LSE 在文档以及本地化上存在较为模糊的情况, 因此在这里给出个人理解的版本:</p>
+<table>
+<thead>
+<tr>
+<th align="left">本地化</th>
+<th align="left">英文</th>
+<th align="left">实际语义</th>
+<th align="center">支持文件</th>
+<th align="center">支持目录</th>
+<th align="left">归属类别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">硬连接</td>
+<td align="left">Hardlink</td>
+<td align="left">硬链接</td>
+<td align="center">✅</td>
+<td align="center">❌</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">符号连接</td>
+<td align="left">Symbolic Link</td>
+<td align="left">符号链接</td>
+<td align="center">✅</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">目录连接点</td>
+<td align="left">Junction</td>
+<td align="left">目录链接</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">智能副本</td>
+<td align="left">Smart Copy</td>
+<td align="left">智能复制</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">智能镜像</td>
+<td align="left">Smart Mirror</td>
+<td align="left">智能镜像</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">硬连接副本</td>
+<td align="left">Hardlink Clone</td>
+<td align="left">硬链接克隆</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">符号连接副本</td>
+<td align="left">Symbolic Clone</td>
+<td align="left">符号链接克隆</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">多版本智能副本</td>
+<td align="left">DeLorean Copy</td>
+<td align="left">多版智能复制</td>
+<td align="center">❌</td>
+<td align="center">✅</td>
+<td align="left">菜单项</td>
+</tr>
+<tr>
+<td align="left">行动键</td>
+<td align="left">Action Button</td>
+<td align="left">鼠标次要按钮</td>
+<td align="center">?</td>
+<td align="center">?</td>
+<td align="left">鼠标动作</td>
+</tr>
+<tr>
+<td align="left">截断连接</td>
+<td align="left">Crop</td>
+<td align="left">跳过链接创建</td>
+<td align="center">?</td>
+<td align="center">?</td>
+<td align="left">配置</td>
+</tr>
+<tr>
+<td align="left">创建副本</td>
+<td align="left">Unroll</td>
+<td align="left">展开并复制文件对象</td>
+<td align="center">?</td>
+<td align="center">?</td>
+<td align="left">配置</td>
+</tr>
+<tr>
+<td align="left">连接原文件</td>
+<td align="left">Splice</td>
+<td align="left">链接原文件</td>
+<td align="center">?</td>
+<td align="center">?</td>
+<td align="left">配置</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="LSE-的基本使用要素"><a href="#LSE-的基本使用要素" class="headerlink" title="LSE 的基本使用要素"></a>LSE 的基本使用要素</h2><h3 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h3><p>LSE 的使用方式为:</p>
+<ol>
+<li>右键 文件或者目录 作为 <strong>Target</strong>, 并选中 <strong>选择源连接点( Pick Link Source )</strong></li>
+<li>在资源管理器的 空白处 或者 父目录 右键 <strong>创建为..(Drop AS…)</strong> </li>
+<li>根据类别选择二级菜单选项</li>
+</ol>
+<h3 id="与命令行的映射"><a href="#与命令行的映射" class="headerlink" title="与命令行的映射"></a>与命令行的映射</h3><p>命令行的链接方式与 LSE 存在以下对应:</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>命令行</th>
+<th>LSE</th>
+<th>LSE(en)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>符号链接</td>
+<td>mklink (&#x2F;d){0,1} &lt;Link&gt; &lt;Target&gt;</td>
+<td>符号连接</td>
+<td>Symbolic Links</td>
+</tr>
+<tr>
+<td>目录链接</td>
+<td>mklink &#x2F;j &lt;Link&gt; &lt;Target&gt;</td>
+<td>目录连接点</td>
+<td>Junction</td>
+</tr>
+<tr>
+<td>硬链接</td>
+<td>mklink &#x2F;h &lt;Link&gt; &lt;Target&gt;</td>
+<td>硬连接</td>
+<td>HardLink</td>
+</tr>
+</tbody></table>
+<h3 id="相对与绝对路径"><a href="#相对与绝对路径" class="headerlink" title="相对与绝对路径"></a>相对与绝对路径</h3><p>创建的路径格式在 <strong>LSEConfig.exe</strong> 的 <span class="p-underline r2">常规配置 - 创建符号链接的方式 - 绝对路径|相对路径</span> 更改.<br>这项配置仅作为<span class="p-warn">优先配置</span>, 在某些情况下 LSE 会选择使用<strong>绝对路径</strong>形式, 比如跨盘符链接.</p>
+<hr>
+<h2 id="LSE-进阶使用"><a href="#LSE-进阶使用" class="headerlink" title="LSE 进阶使用"></a>LSE 进阶使用</h2><p>当涉及大量文件&#x2F;目录操作时候, LSE 可以提供极大便利. 但官网对这些进阶功能描述并不尽人意, 因此我在此用”人话”与”正常人思路”抽象做记录.</p>
+<h3 id="智能复制-Smart-Copy"><a href="#智能复制-Smart-Copy" class="headerlink" title="智能复制(Smart Copy)"></a>智能复制(Smart Copy)</h3><blockquote>
+<p>Smart Copy creates a <strong>copy</strong> of the directory <strong>structure</strong> from the source location to the <strong>destination</strong>, but it <strong>preserves</strong> the inner hardlink structure and inner junction&#x2F;symbolic link relations of the source,<br>and <strong>recreates</strong> this <strong>inner</strong> hardlink structure and <strong>inner</strong> junction&#x2F;symbolic link relation at the destination location.</p>
+</blockquote>
+<p>这段话有如下提要:</p>
+<ol>
+<li>该功能在 Target 为 文件夹 时候适用</li>
+<li>LSE 提供对 Windows 的复制做了扩展</li>
+<li>LSE 尽量复刻源文件夹内的 符号链接&#x2F;目录链接&#x2F;硬链接 的结构</li>
+<li>结构的复刻是通过再现 创建动作 实现的</li>
+</ol>
+<p>当源文件夹内的链接与源文件夹外存在链接, 就有了以下的处理工作.</p>
+<h4 id="硬链接的额外处理"><a href="#硬链接的额外处理" class="headerlink" title="硬链接的额外处理"></a>硬链接的额外处理</h4><ol>
+<li>复制出来的新硬链接表是源链接表的克隆, 是新对象</li>
+<li>新硬链接表重建的过程中, 遇到不存在的对象则丢弃, 表现为计数减 1 , 当计数为 0 降级为普通文件</li>
+</ol>
+<p>使用以下内容创建树结构:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">chcp 65001</span><br><span class="line">md HARD</span><br><span class="line">md HARD\0</span><br><span class="line">md HARD\0\1</span><br><span class="line"></span><br><span class="line">echo T0 &gt; HARD\T0.txt</span><br><span class="line">mklink /h HARD\0\T0的第一份硬链接.txt HARD\T0.txt</span><br><span class="line">mklink /h HARD\0\1\T0的第二份硬链接.txt HARD\T0.txt</span><br><span class="line"></span><br><span class="line">echo T1 &gt; HARD\T1.txt</span><br><span class="line">mklink /h HARD\0\T1的第一份硬链接.txt HARD\T1.txt</span><br><span class="line"></span><br><span class="line">pause</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="https://img-gh.siweipancc.com/20231119/%E7%A1%AC%E9%93%BE%E6%8E%A5%E7%9A%84%E9%A2%9D%E5%A4%96%E5%A4%84%E7%90%86-1.4ypnklaay100.png" alt="硬链接的额外处理-1"></p>
+<p>对文件夹 0 在 HARD-out 中 创建智能副本(智能复制)</p>
+<details>
+<summary>
+或者使用下边的 ln 代码
+</summary>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ln -c HARD\0 HARD-out\0</span><br><span class="line"></span><br><span class="line">:end</span><br><span class="line">pause</span><br></pre></td></tr></table></figure>
+
+</details>
+
+
+
+<p>结果:<br><img data-src="https://img-gh.siweipancc.com/20231119/%E7%A1%AC%E9%93%BE%E6%8E%A5%E7%9A%84%E9%A2%9D%E5%A4%96%E5%A4%84%E7%90%86-2.44g8yqyr7ys0.png" alt="硬链接的额外处理-2"></p>
+<h4 id="符号-目录-链接的额外处理"><a href="#符号-目录-链接的额外处理" class="headerlink" title="符号(目录)链接的额外处理"></a>符号(目录)链接的额外处理</h4><p>当存在符号&#x2F;目录链接时, 存在三种策略:</p>
+<ol>
+<li>丢弃: 该符号链接在复制中被略去, 结果为未有新符号链接的创建</li>
+<li>展开: 复制原有的 Target 指向的文件对象, 成为一个普通文件. <b class="p-warn">同时遵守 硬链接的额外处理</b></li>
+<li>粘接: <strong>新的</strong>符号链接<strong>指向</strong>原有的 Target 指向的文件对象  ( Target 值此时可能会重新计算, 或从相对路径变为绝对路径)</li>
+</ol>
+<p>使用以下内容创建树结构:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">:soft_tree_step1_create.bat</span><br><span class="line">@echo off</span><br><span class="line">@chcp 65001</span><br><span class="line">net.exe session 1&gt;NUL 2&gt;NUL || (Echo This script requires elevated rights. &amp; goto end)</span><br><span class="line">cd /d %~dp0</span><br><span class="line">md SYMBOL</span><br><span class="line">md SYMBOL\0</span><br><span class="line">md SYMBOL\0\1</span><br><span class="line"></span><br><span class="line">echo T0 &gt; SYMBOL\T0.txt</span><br><span class="line">mklink SYMBOL\0\T0的相对链接.txt ..\T0.txt</span><br><span class="line"></span><br><span class="line">echo T1 &gt; SYMBOL\0\T1.txt</span><br><span class="line">mklink SYMBOL\0\1\T1的相对链接.txt ..\T1.txt</span><br><span class="line"></span><br><span class="line">:end</span><br><span class="line">pause</span><br></pre></td></tr></table></figure>
+<p><img data-src="https://img-gh.siweipancc.com/20231119/%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5%E7%9A%84%E9%A2%9D%E5%A4%96%E5%A4%84%E7%90%86-1-1.644lhczb71k0.png" alt="符号链接的额外处理-1-1"></p>
+<p>对文件夹 SYMBOL\0 在 SYMBOL-out 中 以不同设置创建智能副本(智能复制), 或者</p>
+<details>
+<summary>
+或者使用下边的 ln 代码
+</summary>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">:soft_tree_step2_copy.bat</span><br><span class="line">@echo off</span><br><span class="line">@chcp 65001</span><br><span class="line">net.exe session 1&gt;NUL 2&gt;NUL || (Echo This script requires elevated rights. &amp; goto end)</span><br><span class="line">cd /d %~dp0</span><br><span class="line"></span><br><span class="line">:: 丢弃</span><br><span class="line">ln --crop -c SYMBOL\0\ SYMBOL-out\crop\0</span><br><span class="line"></span><br><span class="line">:: 展开</span><br><span class="line">ln --unroll -c SYMBOL\0 SYMBOL-out\unroll\0</span><br><span class="line"></span><br><span class="line">:: 粘接</span><br><span class="line">ln --splice -c SYMBOL\0 SYMBOL-out\splice\0</span><br><span class="line"></span><br><span class="line">:end</span><br><span class="line">pause</span><br></pre></td></tr></table></figure>
+
+</details>
+
+<p>结果:<br><img data-src="https://img-gh.siweipancc.com/20231119/%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5%E7%9A%84%E9%A2%9D%E5%A4%96%E5%A4%84%E7%90%86-2-1.7bwt3tr54hk0.png" alt="符号链接的额外处理-2-1"><br><img data-src="https://img-gh.siweipancc.com/20231119/%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5%E7%9A%84%E9%A2%9D%E5%A4%96%E5%A4%84%E7%90%86-2-2.2d4t2b51vbms.png" alt="符号链接的额外处理-2-2"></p>
+<h3 id="智能镜像-Smart-Mirror"><a href="#智能镜像-Smart-Mirror" class="headerlink" title="智能镜像(Smart Mirror)"></a>智能镜像(Smart Mirror)</h3><blockquote>
+<p>Smart Mirror is very similar to Smart Copy and not only copies but synchronises the folder Source to Destination:</p>
+</blockquote>
+<blockquote>
+<p>Smart Mirror copies if the timestamp of items in the Destination is different from the Source.</p>
+</blockquote>
+<blockquote>
+<p>Delete files not anymore available in Source from Destination.</p>
+</blockquote>
+<blockquote>
+<p>Smart Mirror takes care of Hardlink Relations, Restores Inner Junctions or Inner Symbolic links or when issued unrolls or splices Outer Junctions or Outer Symbolic Links.</p>
+</blockquote>
+<p>这段话有如下提要:</p>
+<ol>
+<li>提供与 智能复制 一样的功能</li>
+<li>提供额外的同步操作(手动触发)</li>
+<li>可以重复在目标上调用以实现同步</li>
+<li>文件的时间戳不一致, 以源文件覆盖目标文件</li>
+<li>不存在于源的文件将会被<b class="p-warn">删除</b></li>
+</ol>
+<p>注: 实际应用仅为实现备份源文件夹, 并提供手动同步状态到触发时源文件夹的状态而不用手动执行修改目标文件夹. </p>
+<h3 id="智能移动-Smart-Move"><a href="#智能移动-Smart-Move" class="headerlink" title="智能移动(Smart Move)"></a>智能移动(Smart Move)</h3><blockquote>
+<p>Smart Move enables folders with junctions and symbolic links beneath to be renamed. The junctions and symbolic links’ targets are updated below that folder. Without Smart Move renaming of such folders would end in dead junctions and symbolic links.</p>
+</blockquote>
+<ol>
+<li>智能移动并不提供菜单项, 而是通过拦截<strong>资源管理器</strong>的文件夹<strong>移动</strong>操作实现</li>
+<li>由文件链接规则可知: 该功能不应用到硬链接上</li>
+<li>智能移动不维护 <strong>外部符号链接</strong> 与 <strong>外部目录</strong> 链接, 这与 智能复制 表现不一致</li>
+</ol>
+<p>注: 在编程中, <strong>重命名等于移动</strong>操作</p>
+<p>使用以下内容创建树结构:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">:smart_move_create.bat</span><br><span class="line">chcp 65001</span><br><span class="line">net.exe session 1&gt;NUL 2&gt;NUL || (Echo This script requires elevated rights. &amp; goto end)</span><br><span class="line">cd /d %~dp0</span><br><span class="line">md mov</span><br><span class="line">md mov\0</span><br><span class="line">md mov\0\1</span><br><span class="line">md mov\0\1\2</span><br><span class="line">echo T0 &gt; mov\T0.txt</span><br><span class="line">mklink mov\0\T0的链接.txt  ..\T0.txt</span><br><span class="line">echo T1 &gt; mov\0\1\2\T1.txt</span><br><span class="line">mklink mov\0\1\T1的链接.txt  .\2\T1.txt</span><br><span class="line"></span><br><span class="line">:end</span><br><span class="line">pause</span><br></pre></td></tr></table></figure>
+<p><img data-src="https://img-gh.siweipancc.com/20231120/%E6%99%BA%E8%83%BD%E7%A7%BB%E5%8A%A8-1.48y4gipqjrm0.png" alt="智能移动-1"></p>
+<p>对 0 文件夹重命名 为 00, 可以预期 4 个文档都可以<span class="p-pass">正常工作</span>:<br><img data-src="https://img-gh.siweipancc.com/20231120/%E6%99%BA%E8%83%BD%E7%A7%BB%E5%8A%A8-2.47yvgdf3sfu0.png" alt="智能移动-2"></p>
+<p>将 00 文件夹移动到 mov 的同级目录 mov-out 下, 可以预期 <strong>T0的链接.txt</strong> 此时<span class="p-warn">无法工作</span>(规则3):<br><img data-src="https://img-gh.siweipancc.com/20231120/%E6%99%BA%E8%83%BD%E7%A7%BB%E5%8A%A8-3.5rxqqhnlpok0.png" alt="智能移动-3"></p>
+<h3 id="硬链接克隆-Hardlink-Clone"><a href="#硬链接克隆-Hardlink-Clone" class="headerlink" title="硬链接克隆(Hardlink Clone)"></a>硬链接克隆(Hardlink Clone)</h3><blockquote>
+<p>Clones are copies of a folder tree from a source location recreated at the destination location, however the files within the new folder tree are Hardlinks or Symbolic Links to the respective files in the source folder tree.</p>
+</blockquote>
+<p>官方把两个菜单选项统一归类到了 Clone 一节, 实际使用中仍旧需要区分. <br>以下的链接包括 符号链接 与目录链接.</p>
+<p>硬链接克隆的流程:</p>
+<ol>
+<li>过滤外部链接</li>
+<li>过滤内部链接</li>
+<li>将过滤之后的文件列表结构以硬链接的形式复制结构到目标文件夹中, 产生的各个文件是硬链接形式</li>
+<li>处理被过滤内部链接, 在目标文件夹中重新构建源文件夹的内链接关系</li>
+<li>处理被外部链接, 根据配置使用以下规则:<ol>
+<li>使用截断连接(Crop): 放弃处理</li>
+<li>使用创建副本(Unroll): 使用<strong>原链接</strong>的 <strong>Target</strong> 在目标文件中创建对应的链接</li>
+<li>使用粘接(Splice): 使用 <strong>原链接</strong>的 <strong>Target</strong> 在目标文件中创建对应的链接</li>
+</ol>
+</li>
+</ol>
+<p>以下是原始数据<br><img data-src="https://img-gh.siweipancc.com/20231120/%E7%A1%AC%E9%93%BE%E6%8E%A5%E5%85%8B%E9%9A%86-1.42wf48yrywy0.png" alt="硬链接克隆-1"></p>
+<p>与三种不同方式克隆目录 Clone\0 之后的结果:<br><img data-src="https://img-gh.siweipancc.com/20231120/%E7%A1%AC%E9%93%BE%E6%8E%A5%E5%85%8B%E9%9A%86-2.55bqhu2lxdk.png" alt="硬链接克隆-2"></p>
+<h3 id="符号链接克隆-Symbolic-Clone"><a href="#符号链接克隆-Symbolic-Clone" class="headerlink" title="符号链接克隆(Symbolic Clone)"></a>符号链接克隆(Symbolic Clone)</h3><p>以下的链接包括 符号链接 与目录链接.  \</p>
+<p>符号链接克隆的流程:</p>
+<ol>
+<li>过滤外部链接</li>
+<li>过滤内部链接</li>
+<li>将过滤之后的文件列表结构以链接的形式复制结构到目标文件夹中, 产生的各个文件是链接形式</li>
+<li>处理被过滤内部链接, 在目标文件夹中重新构建源文件夹的内链接关系</li>
+<li>处理被外部链接, 根据配置使用以下规则:<ol>
+<li>使用截断连接(Crop): 放弃处理</li>
+<li>使用创建副本(Unroll): 使用<strong>原链接</strong>作为 <strong>Target</strong> 在目标文件中创建对应的链接</li>
+<li>使用粘接(Splice): 使用 <b class="p-p-pass">原链接 的 Target</b> 作为 <strong>Target</strong> 在目标文件中创建对应的链接</li>
+</ol>
+</li>
+</ol>
+<p>以种不同方式克隆目录 Clone\0 之后的结果: </p>
+<p><img data-src="https://img-gh.siweipancc.com/20231120/%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5%E5%85%8B%E9%9A%86-1.4x1zhbre04y0.png" alt="符号链接克隆-1"></p>
+]]></content>
+      <categories>
+        <category>Windows</category>
+        <category>路径</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Windows 路径</tag>
+        <tag>LinkShellExtension</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一些有用的网站(持续更新中)</title>
+    <url>//2023/11/20/%E4%B8%80%E4%BA%9B%E6%9C%89%E7%94%A8%E7%9A%84%E7%BD%91%E7%AB%99(%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0%E4%B8%AD)/</url>
+    <content><![CDATA[<h1 id="编程"><a href="#编程" class="headerlink" title="编程"></a>编程</h1><hr>
+<h2 id="Java"><a href="#Java" class="headerlink" title="Java"></a>Java</h2><h3 id="资源"><a href="#资源" class="headerlink" title="资源"></a>资源</h3><ol>
+<li><a href="https://www.injdk.cn/">in_jdk</a>: JDK 资源集合</li>
+<li><a href="https://sdkman.io/install">sdkman</a>: 使用 V 风格管理 Java SDK</li>
+</ol>
+<h3 id="文档"><a href="#文档" class="headerlink" title="文档"></a>文档</h3><ol>
+<li><a href="https://whichjdk.com/">which_jdk</a>: 知晓开发中应该使用个 JDK 发行版</li>
+<li><a href="https://openjdk.org/projects/jdk/">openjdk</a>: JDK 各类工程</li>
+<li><a href="https://docs.oracle.com/javase/specs/index.html">The Java® Language Specification</a>: JDK 语言规范</li>
+</ol>
+<span id="more"></span>
+<hr>
+<h2 id="Web"><a href="#Web" class="headerlink" title="Web"></a>Web</h2><h3 id="文档-1"><a href="#文档-1" class="headerlink" title="文档"></a>文档</h3><ol>
+<li><a href="https://developer.mozilla.org/zh-CN/">MDN Web Docs</a>: Web 开发相关标准查询</li>
+</ol>
+<hr>
+<h2 id="Windows-开发"><a href="#Windows-开发" class="headerlink" title="Windows 开发"></a>Windows 开发</h2><h3 id="资源-1"><a href="#资源-1" class="headerlink" title="资源"></a>资源</h3><ol>
+<li><a href="https://msdn.itellyou.cn/">MSDN</a>: Windows 相关的镜像与工具包</li>
+</ol>
+<h3 id="文档-2"><a href="#文档-2" class="headerlink" title="文档"></a>文档</h3><ol>
+<li><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands">windows-commands</a>: CMD 指令<ol>
+<li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-xp/bb490982(v=technet.10)">Using command redirection operators</a>: 使用重定向操作符</li>
+</ol>
+</li>
+<li><a href="https://www.tutorialspoint.com/batch_script/index.htm">Batch Script Tutorial</a>: 学习 CMD 指令</li>
+</ol>
+<h1 id="通用"><a href="#通用" class="headerlink" title="通用"></a>通用</h1><hr>
+<h2 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h2><h3 id="资源-2"><a href="#资源-2" class="headerlink" title="资源"></a>资源</h3><ol>
+<li><a href="https://www.voidtools.com/zh-cn/">Everything</a>: 高效的搜索工具</li>
+</ol>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><h3 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h3><ol>
+<li><a href="https://www.type.fun/">type-fun</a>: 打字教程</li>
+<li><a href="https://www.mojidict.com/">MOJi辞書</a>: 在线日语词典</li>
+</ol>
+]]></content>
+      <categories>
+        <category>网站</category>
+      </categories>
+      <tags>
+        <tag>网站</tag>
+        <tag>工具</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL 时区与时间类型</title>
+    <url>//2023/12/05/MySQL-%E6%97%B6%E5%8C%BA%E4%B8%8E%E6%97%B6%E9%97%B4%E7%B1%BB%E5%9E%8B/</url>
+    <content><![CDATA[<h1 id="时区"><a href="#时区" class="headerlink" title="时区"></a>时区</h1><p>获取时区信息 <code>SELECT @@global.time_zone, @@session.time_zone;</code></p>
+<h2 id="设置服务器时区"><a href="#设置服务器时区" class="headerlink" title="设置服务器时区:"></a>设置服务器时区:</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">default-time-zone=&#x27;+08:00&#x27;</span><br></pre></td></tr></table></figure>
+
+<h2 id="设置连接时区信息"><a href="#设置连接时区信息" class="headerlink" title="设置连接时区信息"></a>设置连接时区信息</h2><p><code>set session time_zone=&#39;+08:00&#39;</code></p>
+<p><code>jdbc:mysql://localhost:3306?serverTimezone=GMT%2B8</code></p>
+<h1 id="DATE、DATETIME-和-TIMESTAMP"><a href="#DATE、DATETIME-和-TIMESTAMP" class="headerlink" title="DATE、DATETIME 和 TIMESTAMP"></a>DATE、DATETIME 和 TIMESTAMP</h1><span id="more"></span>
+
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>下限</th>
+<th>上限</th>
+<th align="center">建议使用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DATE</td>
+<td>1000-01-01</td>
+<td>9999-12-31</td>
+<td align="center">√</td>
+</tr>
+<tr>
+<td>DATETIME</td>
+<td>1000-01-01 00:00:00</td>
+<td>9999-12-31 23:59:59</td>
+<td align="center">√</td>
+</tr>
+<tr>
+<td>TIMESTAMP</td>
+<td>1970-01-01 00:00:01</td>
+<td>2038-01-19 03:14:07</td>
+<td align="center">×</td>
+</tr>
+</tbody></table>
+<h1 id="TIMESTAMP"><a href="#TIMESTAMP" class="headerlink" title="TIMESTAMP"></a>TIMESTAMP</h1><p>TIMESTAMP 值从当前时区转换到 UTC 以进行存储，并在检索时从 UTC 转换回当前时区。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+        <category>MySQL 时区与时间类型</category>
+      </categories>
+      <tags>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JAVA 的 Service 模式</title>
+    <url>//2023/12/10/JAVA-%E7%9A%84-Service-%E6%A8%A1%E5%BC%8F/</url>
+    <content><![CDATA[<h1 id="Service"><a href="#Service" class="headerlink" title="Service"></a>Service</h1><p>经典的运行时服务加载, 常见于图像处理, 数据编码中.</p>
+<h1 id="经典使用"><a href="#经典使用" class="headerlink" title="经典使用"></a>经典使用</h1><p>Service 的使用一般分为:</p>
+<ul>
+<li>声明一个接口</li>
+<li>实现一个接口</li>
+<li>配置元文件</li>
+<li>调用接口</li>
+</ul>
+<h2 id="声明-Service"><a href="#声明-Service" class="headerlink" title="声明 Service"></a>声明 Service</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">BackupService</span> &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">backup</span><span class="params">(Object[] data)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+
+<h2 id="实现一个接口"><a href="#实现一个接口" class="headerlink" title="实现一个接口"></a>实现一个接口</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Arrays;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BackupServiceLogImpl</span> <span class="keyword">implements</span> <span class="title class_">BackupService</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">backup</span><span class="params">(Object[] data)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;backup data: &#123;&#125;&quot;</span>, Arrays.toString(data));</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="配置元文件"><a href="#配置元文件" class="headerlink" title="配置元文件"></a>配置元文件</h2><p>在 classpath 下新增一个文件: <code>META-INF/services/com.pancc.up.simple.spi.BackupService</code> ,<br>内容为 <code>com.pancc.up.simple.spi.BackupServiceLogImpl</code></p>
+<h2 id="调用接口"><a href="#调用接口" class="headerlink" title="调用接口"></a>调用接口</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.ServiceLoader;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BackupPiPes</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        ServiceLoader&lt;BackupService&gt; services = ServiceLoader.load(BackupService.class);</span><br><span class="line">        <span class="type">BackupService</span> <span class="variable">backupService</span> <span class="operator">=</span> services.findFirst().orElseThrow(IllegalStateException::<span class="keyword">new</span>);</span><br><span class="line">        backupService.backup(<span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>JAVA</category>
+        <category>Service</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>记录数据修改前后的变化</title>
+    <url>//2023/12/10/%E8%AE%B0%E5%BD%95%E6%95%B0%E6%8D%AE%E4%BF%AE%E6%94%B9%E5%89%8D%E5%90%8E%E7%9A%84%E5%8F%98%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>追踪数据变化在各种审查场景中是一个常见的需求. 在这里我记录一个常见的错误实现, 并提供一个从基础到完整可用的框架实现. 在这里我选用 Hibernate 6.4.Final 作为框架依赖.</p>
+<h1 id="常见的错误实现"><a href="#常见的错误实现" class="headerlink" title="常见的错误实现"></a>常见的错误实现</h1><p>以下摘自 <a href="https://www.cnblogs.com/cuijinlong/p/17239805.html">Java实现记录对象修改前后的变化</a> , 可见该方法明显存在以下问题:</p>
+<ul>
+<li>依赖暴力反射</li>
+<li>字段存在性能问题</li>
+<li>在现代 ORM 框架下会遇到大量常见的运行时错误</li>
+</ul>
+<span id="more"></span>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 自定义注解</span></span><br><span class="line"><span class="meta">@Target(ElementType.FIELD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> ForUpdate &#123;</span><br><span class="line">    String <span class="title function_">fieldName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取变更内容.</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> newBean 更改前的Bean</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> oldBean 更改后的Bean</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">     <span class="keyword">static</span> &lt;T&gt; String <span class="title function_">getChangedFields</span><span class="params">(T newBean, T oldBean)</span>&#123;</span><br><span class="line">        Field[] fields = newBean.getClass().getDeclaredFields();</span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">builder</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">        <span class="keyword">for</span>(Field field : fields) &#123;</span><br><span class="line">            field.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="keyword">if</span> (field.isAnnotationPresent(ForUpdate.class)) &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="type">Object</span> <span class="variable">newValue</span> <span class="operator">=</span> field.get(newBean);</span><br><span class="line">                    <span class="type">Object</span> <span class="variable">oldValue</span> <span class="operator">=</span> field.get(oldBean);</span><br><span class="line">                    <span class="keyword">if</span>(!Objects.equals(newValue, oldValue)) &#123;</span><br><span class="line">                        builder.append(field.getAnnotation(ForUpdate.class).fieldName()); <span class="comment">//获取字段名称</span></span><br><span class="line">                        builder.append(<span class="string">&quot;: 【更改前：&quot;</span>);</span><br><span class="line">                        builder.append(newValue);</span><br><span class="line">                        builder.append(<span class="string">&quot;, 更改后：&quot;</span>);</span><br><span class="line">                        builder.append(oldValue);</span><br><span class="line">                        builder.append(<span class="string">&quot;】\n&quot;</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                    System.out.println(e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> builder.toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h1 id="雏形-JPA"><a href="#雏形-JPA" class="headerlink" title="雏形 - JPA"></a>雏形 - JPA</h1><p>根据 JPA规范, ORM 必须支持实体生命回调及动态值刷新.</p>
+<blockquote>
+<p>An update to the state of an entity includes both the assignment of a new value to a persistent property or field of the<br>entity as well as the modification of a mutable value of a persistent property or field[26].</p>
+</blockquote>
+<p>以下是根据规则1作的一个简易的模型:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.entity;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> jakarta.persistence.*;</span><br><span class="line"><span class="keyword">import</span> lombok.Getter;</span><br><span class="line"><span class="keyword">import</span> lombok.Setter;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.log4j.Log4j2;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/8</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Entity</span></span><br><span class="line"><span class="meta">@Setter</span></span><br><span class="line"><span class="meta">@Getter</span></span><br><span class="line"><span class="meta">@Log4j2</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Room</span> &#123;</span><br><span class="line">    <span class="meta">@Id</span></span><br><span class="line">    <span class="meta">@GeneratedValue(strategy = GenerationType.IDENTITY)</span></span><br><span class="line">    <span class="meta">@Column(name = &quot;id&quot;, nullable = false)</span></span><br><span class="line">    <span class="keyword">private</span> Long id;</span><br><span class="line"></span><br><span class="line">    String name;</span><br><span class="line"></span><br><span class="line">    <span class="type">Integer</span> <span class="variable">size</span> <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">Integer</span> <span class="variable">cups</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Version</span></span><br><span class="line">    Long version;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@PreUpdate</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">preUpdate</span><span class="params">()</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;update, what properties?&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="改进1-规则-2-的遵守"><a href="#改进1-规则-2-的遵守" class="headerlink" title="改进1 - 规则 2 的遵守"></a>改进1 - 规则 2 的遵守</h1><p>以上代码虽 HOOK 了更新生命回调, 但无法确定变动的字段以及旧值. 因此需要依赖 <strong>Hibernate</strong> 等现代 ORM 的脏值检测与更加深入的生命回调.<br>为 Hibernate 编写并声明如下 Service:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.boot.Metadata;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.boot.spi.BootstrapContext;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.engine.spi.SessionFactoryImplementor;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.service.spi.EventListenerRegistry;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.EventType;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEvent;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEventListener;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.integrator.spi.Integrator;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.metamodel.mapping.AttributeMapping;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.persister.entity.EntityPersister;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.service.spi.SessionFactoryServiceRegistry;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/8</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MonitorIntegrator</span> <span class="keyword">implements</span> <span class="title class_">Integrator</span>, PostUpdateEventListener &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">integrate</span><span class="params">(Metadata metadata, BootstrapContext bootstrapContext, SessionFactoryImplementor serviceRegistry)</span> &#123;</span><br><span class="line">        <span class="type">EventListenerRegistry</span> <span class="variable">eventListenerRegistry</span> <span class="operator">=</span> serviceRegistry.getServiceRegistry().getService(EventListenerRegistry.class);</span><br><span class="line">        <span class="keyword">assert</span> eventListenerRegistry != <span class="literal">null</span>;</span><br><span class="line">        eventListenerRegistry.appendListeners(EventType.POST_COMMIT_UPDATE, <span class="built_in">this</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">disintegrate</span><span class="params">(SessionFactoryImplementor sessionFactory, SessionFactoryServiceRegistry serviceRegistry)</span> &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onPostUpdate</span><span class="params">(PostUpdateEvent event)</span> &#123;</span><br><span class="line">        <span class="type">EntityPersister</span> <span class="variable">persister</span> <span class="operator">=</span> event.getPersister();</span><br><span class="line">        Class&lt;?&gt; mappedClass = persister.getMappedClass();</span><br><span class="line">        log.info(<span class="string">&quot;entity update: &#123;&#125; &quot;</span>, mappedClass);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> idx : event.getDirtyProperties()) &#123;</span><br><span class="line">            <span class="type">AttributeMapping</span> <span class="variable">attributeMapping</span> <span class="operator">=</span> persister.getAttributeMapping(idx);</span><br><span class="line">            <span class="type">String</span> <span class="variable">attributeName</span> <span class="operator">=</span> attributeMapping.getAttributeName();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">oldValue</span> <span class="operator">=</span> event.getOldState()[idx];</span><br><span class="line">            <span class="type">Object</span> <span class="variable">newValue</span> <span class="operator">=</span> event.getState()[idx];</span><br><span class="line">            log.info(<span class="string">&quot;&#123;&#125; changed from: [&#123;&#125;] to [&#123;&#125;]&quot;</span>, attributeName, oldValue, newValue);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">requiresPostCommitHandling</span><span class="params">(EntityPersister persister)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>以上代码完成了以下任务:</p>
+<ul>
+<li>实现了 Hibernate 的插件接口 <code>Integrator</code> 与 实体事件更新后接口 <code>PostUpdateEventListener</code> </li>
+<li>根据脏值获取到字段名与前后值</li>
+</ul>
+<h1 id="改进2-自定义信息"><a href="#改进2-自定义信息" class="headerlink" title="改进2 - 自定义信息"></a>改进2 - 自定义信息</h1><h2 id="自定义注解"><a href="#自定义注解" class="headerlink" title="自定义注解"></a>自定义注解</h2><p>参考错误实现提供自定义信息, 根据 JPA 的字段访问规则 <a href="https://jakarta.ee/specifications/persistence/3.1/jakarta-persistence-spec-3.1#default-access-type">Access Type</a>,<br>我们的注解需要支持两个位置:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.annotation;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.annotation.*;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Target(&#123;ElementType.FIELD, ElementType.METHOD&#125;)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> LogProperty &#123;</span><br><span class="line"></span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="改造实体类"><a href="#改造实体类" class="headerlink" title="改造实体类"></a>改造实体类</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.pancc.up.simple.entity;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.pancc.up.simple.annotation.LogProperty;</span><br><span class="line"><span class="keyword">import</span> jakarta.persistence.*;</span><br><span class="line"><span class="keyword">import</span> lombok.Getter;</span><br><span class="line"><span class="keyword">import</span> lombok.Setter;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.log4j.Log4j2;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/8</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Entity</span></span><br><span class="line"><span class="meta">@Setter</span></span><br><span class="line"><span class="meta">@Log4j2</span></span><br><span class="line"><span class="meta">@Getter</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Room</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Id</span></span><br><span class="line">    <span class="meta">@GeneratedValue(strategy = GenerationType.IDENTITY)</span></span><br><span class="line">    <span class="meta">@Column(name = &quot;id&quot;, nullable = false)</span></span><br><span class="line">    <span class="meta">@Getter</span></span><br><span class="line">    <span class="keyword">private</span> Long id;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@LogProperty(&quot;名字&quot;)</span></span><br><span class="line">    <span class="meta">@Getter</span></span><br><span class="line">    String name;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Access(AccessType.PROPERTY)</span></span><br><span class="line">    <span class="type">Integer</span> <span class="variable">size</span> <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@see</span> org.hibernate.property.access.spi.Getter#getMember()</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@LogProperty(&quot;大小&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Integer <span class="title function_">getSize</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> size;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@LogProperty(&quot;配套&quot;)</span></span><br><span class="line">    <span class="meta">@Getter</span></span><br><span class="line">    <span class="type">Integer</span> <span class="variable">cups</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Version</span></span><br><span class="line">    Long version;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="改造-Service"><a href="#改造-Service" class="headerlink" title="改造 Service"></a>改造 Service</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.pancc.up.simple.annotation.LogProperty;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.boot.Metadata;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.boot.spi.BootstrapContext;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.engine.spi.SessionFactoryImplementor;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.service.spi.EventListenerRegistry;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.EventType;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEvent;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEventListener;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.integrator.spi.Integrator;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.metamodel.mapping.AttributeMapping;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.persister.entity.EntityPersister;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.service.spi.SessionFactoryServiceRegistry;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.AnnotatedElement;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Member;</span><br><span class="line"><span class="keyword">import</span> java.util.Optional;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/8</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MonitorIntegrator</span> <span class="keyword">implements</span> <span class="title class_">Integrator</span>, PostUpdateEventListener &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">integrate</span><span class="params">(Metadata metadata, BootstrapContext bootstrapContext, SessionFactoryImplementor serviceRegistry)</span> &#123;</span><br><span class="line">        <span class="type">EventListenerRegistry</span> <span class="variable">eventListenerRegistry</span> <span class="operator">=</span> serviceRegistry.getServiceRegistry().getService(EventListenerRegistry.class);</span><br><span class="line">        <span class="keyword">assert</span> eventListenerRegistry != <span class="literal">null</span>;</span><br><span class="line">        eventListenerRegistry.appendListeners(EventType.POST_COMMIT_UPDATE, <span class="built_in">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">disintegrate</span><span class="params">(SessionFactoryImplementor sessionFactory, SessionFactoryServiceRegistry serviceRegistry)</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onPostUpdate</span><span class="params">(PostUpdateEvent event)</span> &#123;</span><br><span class="line">        <span class="type">EntityPersister</span> <span class="variable">persister</span> <span class="operator">=</span> event.getPersister();</span><br><span class="line">        Class&lt;?&gt; mappedClass = persister.getMappedClass();</span><br><span class="line">        log.info(<span class="string">&quot;entity update: &#123;&#125; &quot;</span>, mappedClass);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> idx : event.getDirtyProperties()) &#123;</span><br><span class="line">            <span class="type">AttributeMapping</span> <span class="variable">attributeMapping</span> <span class="operator">=</span> persister.getAttributeMapping(idx);</span><br><span class="line">            <span class="type">String</span> <span class="variable">attributeName</span> <span class="operator">=</span> attributeMapping.getAttributeName();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">oldValue</span> <span class="operator">=</span> event.getOldState()[idx];</span><br><span class="line">            <span class="type">Object</span> <span class="variable">newValue</span> <span class="operator">=</span> event.getState()[idx];</span><br><span class="line">            <span class="type">Member</span> <span class="variable">member</span> <span class="operator">=</span> attributeMapping.getPropertyAccess().getGetter().getMember();</span><br><span class="line">            <span class="type">String</span> <span class="variable">msg</span> <span class="operator">=</span> Optional.ofNullable(member).filter(AnnotatedElement.class::isInstance).map(AnnotatedElement.class::cast)</span><br><span class="line">                    .map(x -&gt; x.getAnnotation(LogProperty.class)).map(LogProperty::value).orElse(attributeName);</span><br><span class="line">            log.info(<span class="string">&quot;&#123;&#125;(&#123;&#125;) changed from: [&#123;&#125;] to [&#123;&#125;]&quot;</span>, attributeName, msg, oldValue, newValue);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">requiresPostCommitHandling</span><span class="params">(EntityPersister persister)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>至此, 我们可以根据注解在字段或者方法上动态地获得自定义信息.</p>
+<h1 id="改进3-融合-IOC-框架"><a href="#改进3-融合-IOC-框架" class="headerlink" title="改进3 - 融合 IOC 框架"></a>改进3 - 融合 IOC 框架</h1><p>对于 IOC 环境, 为了更好的融合与使用自动依赖注入特性, 例如 Spring , 我们将 Service 声明文件删除, 删除 Integrator 接口声明, 因此以上的 Service 代码可变为如下:</p>
+<h2 id="改造-Service-1"><a href="#改造-Service-1" class="headerlink" title="改造 Service"></a>改造 Service</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.pancc.up.simple.annotation.LogProperty;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEvent;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.PostUpdateEventListener;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.metamodel.mapping.AttributeMapping;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.persister.entity.EntityPersister;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.AnnotatedElement;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Member;</span><br><span class="line"><span class="keyword">import</span> java.util.Optional;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/8</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MonitorIntegrator</span> <span class="keyword">implements</span> <span class="title class_">PostUpdateEventListener</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onPostUpdate</span><span class="params">(PostUpdateEvent event)</span> &#123;</span><br><span class="line">        <span class="type">EntityPersister</span> <span class="variable">persister</span> <span class="operator">=</span> event.getPersister();</span><br><span class="line">        Class&lt;?&gt; mappedClass = persister.getMappedClass();</span><br><span class="line">        log.info(<span class="string">&quot;entity update: &#123;&#125; &quot;</span>, mappedClass);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> idx : event.getDirtyProperties()) &#123;</span><br><span class="line">            <span class="type">AttributeMapping</span> <span class="variable">attributeMapping</span> <span class="operator">=</span> persister.getAttributeMapping(idx);</span><br><span class="line">            <span class="type">String</span> <span class="variable">attributeName</span> <span class="operator">=</span> attributeMapping.getAttributeName();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">oldValue</span> <span class="operator">=</span> event.getOldState()[idx];</span><br><span class="line">            <span class="type">Object</span> <span class="variable">newValue</span> <span class="operator">=</span> event.getState()[idx];</span><br><span class="line">            <span class="type">Member</span> <span class="variable">member</span> <span class="operator">=</span> attributeMapping.getPropertyAccess().getGetter().getMember();</span><br><span class="line">            <span class="type">String</span> <span class="variable">msg</span> <span class="operator">=</span> Optional.ofNullable(member).filter(AnnotatedElement.class::isInstance).map(AnnotatedElement.class::cast)</span><br><span class="line">                    .map(x -&gt; x.getAnnotation(LogProperty.class)).map(LogProperty::value).orElse(attributeName);</span><br><span class="line">            log.info(<span class="string">&quot;&#123;&#125;(&#123;&#125;) changed from: [&#123;&#125;] to [&#123;&#125;]&quot;</span>, attributeName, msg, oldValue, newValue);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">requiresPostCommitHandling</span><span class="params">(EntityPersister persister)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="增加配置类"><a href="#增加配置类" class="headerlink" title="增加配置类"></a>增加配置类</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.simple.spi;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> jakarta.persistence.EntityManagerFactory;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.engine.spi.SessionFactoryImplementor;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.service.spi.EventListenerRegistry;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.event.spi.EventType;</span><br><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.annotation.Autowired;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Configuration;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MConfig</span> &#123;</span><br><span class="line">    <span class="meta">@Configuration</span></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">config</span> &#123;</span><br><span class="line">        <span class="meta">@Bean</span></span><br><span class="line">        <span class="keyword">public</span> MonitorIntegrator <span class="title function_">monitorIntegrator</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">MonitorIntegrator</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">monitorIntegrator</span><span class="params">(MonitorIntegrator monitorIntegrator, EntityManagerFactory entityManagerFactory)</span> &#123;</span><br><span class="line">        <span class="type">SessionFactoryImplementor</span> <span class="variable">sessionFactory</span> <span class="operator">=</span> entityManagerFactory.unwrap(SessionFactoryImplementor.class);</span><br><span class="line">        <span class="type">EventListenerRegistry</span> <span class="variable">eventListenerRegistry</span> <span class="operator">=</span> sessionFactory.getServiceRegistry().getService(EventListenerRegistry.class);</span><br><span class="line">        <span class="keyword">assert</span> eventListenerRegistry != <span class="literal">null</span>;</span><br><span class="line">        eventListenerRegistry.appendListeners(EventType.POST_COMMIT_UPDATE, monitorIntegrator);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h1 id="改造效果"><a href="#改造效果" class="headerlink" title="改造效果"></a>改造效果</h1><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">2023-12-10T23:48:38.719+08:00  INFO 21480 --- [nio-8080-exec-4] c.pancc.up.simple.spi.MonitorIntegrator  : entity update: class com.pancc.up.simple.entity.Room </span><br><span class="line">2023-12-10T23:48:38.719+08:00  INFO 21480 --- [nio-8080-exec-4] c.pancc.up.simple.spi.MonitorIntegrator  : cups(配套) changed from: [3] to [5]</span><br><span class="line">2023-12-10T23:48:38.719+08:00  INFO 21480 --- [nio-8080-exec-4] c.pancc.up.simple.spi.MonitorIntegrator  : size(大小) changed from: [2] to [4]</span><br><span class="line">2023-12-10T23:48:38.719+08:00  INFO 21480 --- [nio-8080-exec-4] c.pancc.up.simple.spi.MonitorIntegrator  : version(version) changed from: [20] to [21]</span><br></pre></td></tr></table></figure>
+
+<h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>追踪值时, 应注意值的类型, 序列化值的尽量为 Basic 类型, 日志也按照单表思想记录</p>
+<h1 id="额外资料"><a href="#额外资料" class="headerlink" title="额外资料"></a>额外资料</h1><p><a href="https://docs.jboss.org/hibernate/orm/6.4/integrationguide/html_single/Hibernate_Integration_Guide.html">Hibernate_Integration</a></p>
+<p><a href="https://jakarta.ee/specifications/persistence/3.1/">JPA3.1</a></p>
+]]></content>
+      <categories>
+        <category>JAVA</category>
+        <category>JPA</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+        <tag>Hibernate</tag>
+        <tag>JPA</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JAVA15 文本块</title>
+    <url>//2023/12/15/JAVA15-%E6%96%87%E6%9C%AC%E5%9D%97/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>文本块是一种<strong>多行字符串</strong>字面形式，可避免使用大多数<strong>转义</strong>序列，以可预测的方式自动格式化字符串，并在需要时让开发人员控制格式。</p>
+<h2 id="历史"><a href="#历史" class="headerlink" title="历史"></a>历史</h2><ol>
+<li>JEP 355 第一次预览(JDK 13) 提出</li>
+<li>JEP 368 第二次预览(JDK 14), 两个新的转义序列</li>
+<li><a href="https://openjdk.org/jeps/378">JEP 378</a> 正式发布(JDK 15)<span id="more"></span></li>
+</ol>
+<h2 id="不足"><a href="#不足" class="headerlink" title="不足"></a>不足</h2><ol>
+<li>不直接支持字符串插值( <strong>interpolation</strong> ), 见 String::formatted</li>
+<li>不支持原始字符串</li>
+</ol>
+<h1 id="详细"><a href="#详细" class="headerlink" title="详细"></a>详细</h1><h2 id="结构定义"><a href="#结构定义" class="headerlink" title="结构定义"></a>结构定义</h2><p><a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.6">来源</a></p>
+<figure class="highlight bnf"><table><tr><td class="code"><pre><span class="line">TextBlock:</span><br><span class="line">&quot;&quot;&quot; &#123;TextBlockWhiteSpace&#125; LineTerminator &#123;TextBlockCharacter&#125; &quot;&quot;&quot;</span><br><span class="line"></span><br><span class="line">TextBlockWhiteSpace:</span><br><span class="line">WhiteSpace but not LineTerminator</span><br><span class="line"></span><br><span class="line">TextBlockCharacter:</span><br><span class="line">InputCharacter but not \</span><br><span class="line">EscapeSequence</span><br><span class="line">LineTerminator</span><br><span class="line"></span><br><span class="line">WhiteSpace:</span><br><span class="line">the ASCII SP character, also known as &quot;space&quot;</span><br><span class="line">the ASCII HT character, also known as &quot;horizontal tab&quot;</span><br><span class="line">the ASCII FF character, also known as &quot;form feed&quot;</span><br><span class="line"></span><br><span class="line">LineTerminator:</span><br><span class="line">the ASCII LF character, also known as &quot;newline&quot;</span><br><span class="line">the ASCII CR character, also known as &quot;return&quot;</span><br><span class="line">the ASCII CR character followed by the ASCII LF character</span><br><span class="line"></span><br><span class="line">InputCharacter:</span><br><span class="line">UnicodeInputCharacter but not CR or LF</span><br><span class="line"></span><br><span class="line">UnicodeInputCharacter:</span><br><span class="line">UnicodeEscape</span><br><span class="line">RawInputCharacter</span><br><span class="line"></span><br><span class="line">UnicodeEscape:</span><br><span class="line">\UnicodeMarker HexDigit HexDigit HexDigit HexDigit</span><br><span class="line"></span><br><span class="line">UnicodeMarker:</span><br><span class="line">u &#123;u&#125;</span><br><span class="line"></span><br><span class="line">RawInputCharacter:</span><br><span class="line">any Unicode character</span><br><span class="line"></span><br><span class="line">EscapeSequence:</span><br><span class="line">\b (backspace BS, Unicode \u0008)</span><br><span class="line">\s (space SP, Unicode \u0020)</span><br><span class="line">\t (horizontal tab HT, Unicode \u0009)</span><br><span class="line">\n (linefeed LF, Unicode \u000a)</span><br><span class="line">\f (form feed FF, Unicode \u000c)</span><br><span class="line">\r (carriage return CR, Unicode \u000d)</span><br><span class="line">\LineTerminator (line continuation, no Unicode representation)</span><br><span class="line">\&quot; (double quote &quot;, Unicode \u0022)</span><br><span class="line">\&#x27; (single quote &#x27;, Unicode \u0027)</span><br><span class="line">\\ (backslash \, Unicode \u005c)</span><br><span class="line">OctalEscape (octal value, Unicode \u0000 to \u00ff)</span><br><span class="line"></span><br><span class="line">OctalEscape:</span><br><span class="line">\OctalDigit</span><br><span class="line">\OctalDigit OctalDigit</span><br><span class="line">\ZeroToThree OctalDigit OctalDigit</span><br><span class="line"></span><br><span class="line">OctalDigit:</span><br><span class="line">(one of)</span><br><span class="line">0 1 2 3 4 5 6 7</span><br><span class="line"></span><br><span class="line">ZeroToThree:</span><br><span class="line">(one of)</span><br><span class="line">0 1 2 3</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="测试用例"><a href="#测试用例" class="headerlink" title="测试用例"></a>测试用例</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.pancc.up.jdks;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.junit.jupiter.api.DisplayName;</span><br><span class="line"><span class="keyword">import</span> org.junit.jupiter.api.Test;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="keyword">static</span> org.junit.jupiter.api.Assertions.assertEquals;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Siweipancc on 2023/12/15</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BlocksTextTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;替换常规拼接&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t1</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">html1</span> <span class="operator">=</span> <span class="string">&quot;&lt;html&gt;\n&quot;</span> +</span><br><span class="line">                       <span class="string">&quot;    &lt;body&gt;\n&quot;</span> +</span><br><span class="line">                       <span class="string">&quot;        &lt;p&gt;Hello, world&lt;/p&gt;\n&quot;</span> +</span><br><span class="line">                       <span class="string">&quot;    &lt;/body&gt;\n&quot;</span> +</span><br><span class="line">                       <span class="string">&quot;&lt;/html&gt;\n&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">html2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                &lt;html&gt;</span></span><br><span class="line"><span class="string">                    &lt;body&gt;</span></span><br><span class="line"><span class="string">                        &lt;p&gt;Hello, world&lt;/p&gt;</span></span><br><span class="line"><span class="string">                    &lt;/body&gt;</span></span><br><span class="line"><span class="string">                &lt;/html&gt;</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(html1, html2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;最后产生换行字符&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t2</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                line 1</span></span><br><span class="line"><span class="string">                line 2</span></span><br><span class="line"><span class="string">                line 3</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;line 1\nline 2\nline 3\n&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;最后不产生换行字符&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t22</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                line 1</span></span><br><span class="line"><span class="string">                line 2</span></span><br><span class="line"><span class="string">                line 3&quot;&quot;&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;line 1\nline 2\nline 3&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;\\ 换行输入但不产生换行字符&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t3</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                line 1</span></span><br><span class="line"><span class="string">                line 2</span></span><br><span class="line"><span class="string">                line 3\</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;line 1\nline 2\nline 3&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;空白字符串&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t4</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;\\ 拼接长串&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t5</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;文本块是一种多行字符串字面形式，可避免使用大多数转义序列，以可预测的方式自动格式化字符串，并在需要时让开发人员控制格式。&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                文本块是一种多行字符串\</span></span><br><span class="line"><span class="string">                字面形式，可避免使用大多数\</span></span><br><span class="line"><span class="string">                转义序列，以可预测的方式自\</span></span><br><span class="line"><span class="string">                动格式化字符串，并在需要时\</span></span><br><span class="line"><span class="string">                让开发人员控制格式。&quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;特殊缩进1&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t61</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;文本\n块是\n  一种\n  多行\n 字符串&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                文本</span></span><br><span class="line"><span class="string">                块是</span></span><br><span class="line"><span class="string">                  一种</span></span><br><span class="line"><span class="string">                  多行</span></span><br><span class="line"><span class="string">                 字符串&quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;特殊缩进2&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t62</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;文本\n块是\n  一种\n  多行\n 字符串\n&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                文本</span></span><br><span class="line"><span class="string">                块是</span></span><br><span class="line"><span class="string">                  一种</span></span><br><span class="line"><span class="string">                  多行</span></span><br><span class="line"><span class="string">                 字符串</span></span><br><span class="line"><span class="string">                   &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;特殊缩进3&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t63</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;文本\n块是\n  一种\n  多行\n 字符串\n&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                文本</span></span><br><span class="line"><span class="string">                块是</span></span><br><span class="line"><span class="string">                  一种</span></span><br><span class="line"><span class="string">                  多行</span></span><br><span class="line"><span class="string">                 字符串</span></span><br><span class="line"><span class="string">                 &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;特殊缩进4&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t64</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;文本\n块是\n  一种\n  多行\n 字符串\n&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                文本</span></span><br><span class="line"><span class="string">                块是</span></span><br><span class="line"><span class="string">                  一种</span></span><br><span class="line"><span class="string">                  多行</span></span><br><span class="line"><span class="string">                 字符串</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="meta">@DisplayName(&quot;特殊缩进5&quot;)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">t65</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;                文本\n                块是\n                  一种\n                  多行\n                 字符串\n&quot;</span>;</span><br><span class="line">        <span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">                                文本</span></span><br><span class="line"><span class="string">                                块是</span></span><br><span class="line"><span class="string">                                  一种</span></span><br><span class="line"><span class="string">                                  多行</span></span><br><span class="line"><span class="string">                                 字符串</span></span><br><span class="line"><span class="string">                &quot;&quot;&quot;</span>;</span><br><span class="line">        assertEquals(s1, s2);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="编译器处理步骤"><a href="#编译器处理步骤" class="headerlink" title="编译器处理步骤"></a>编译器处理步骤</h2><ol>
+<li>行结束符被翻译为 LF (\u000A)</li>
+<li>最大努力的删除左右缩进使用的空白字符</li>
+<li>对内容中的 Escape 序列进行解释, 如: \s</li>
+</ol>
+<hr>
+<h1 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h1><h2 id="编辑器换行符使用-LF"><a href="#编辑器换行符使用-LF" class="headerlink" title="编辑器换行符使用 LF"></a>编辑器换行符使用 LF</h2><ol>
+<li>IntelliJ IDEA: Settings -&gt; Editor -&gt; Code Style &#x3D;&#x3D;&gt; Line separator(Unix and MacOS(\n))</li>
+<li>Notepad++: 设置 -&gt; 首选项 -&gt; 新建 &#x3D;&#x3D;&gt; 格式(行尾) (Unix(LF))</li>
+</ol>
+<h2 id="一些实用的方法"><a href="#一些实用的方法" class="headerlink" title="一些实用的方法"></a>一些实用的方法</h2><ol>
+<li>String::stripIndent()：用于从文本块内容中剥离附带的空白空间</li>
+<li>String::translateEscapes()：用于翻译转义序列</li>
+<li>String::formatted(Object… args)：简化文本块中的值替换</li>
+</ol>
+]]></content>
+      <categories>
+        <category>JAVA</category>
+        <category>JDK15</category>
+      </categories>
+      <tags>
+        <tag>JAVA</tag>
+        <tag>JDK 特性</tag>
+      </tags>
+  </entry>
+</search>
